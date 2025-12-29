@@ -1,0 +1,9 @@
+*.pyc
+
+/.venv/
+.venv/
+keys/
+
+.env
+
+data/

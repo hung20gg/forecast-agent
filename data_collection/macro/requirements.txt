@@ -1,0 +1,3 @@
+setuptools
+pandas_datareader
+wbgapi
