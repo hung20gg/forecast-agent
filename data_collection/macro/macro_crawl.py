@@ -281,12 +281,12 @@ monthly_bonds = get_monthly_bond_yields(2010)
 # print("SAVING DATA TO FILES")
 # print("="*80)
 
-# df_macro = pd.concat(annual_data)
-# # Save annual data for each indicator
-# filename = f'annual_2010_2025.csv'
-# df_macro.to_csv(filename)
+df_macro = pd.concat(annual_data)
+# Save annual data for each indicator
+filename = f'../data/annual_2010_2025.parquet'
+df_macro.to_parquet(filename)
 # print(f"  ✓ Saved: {filename}")
 
 # Save Treasury rates
 df_bond = pd.concat([us_treasury, monthly_bonds])
-df_bond.to_csv('data/monthly_bond.csv')
+df_bond.to_parquet('../data/monthly_bond.parquet')

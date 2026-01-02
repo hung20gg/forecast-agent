@@ -1,0 +1,5 @@
+pyarrow
+google-cloud-bigquery
+vnstock3
+pandas
+yfinance
