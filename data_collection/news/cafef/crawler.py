@@ -220,13 +220,14 @@ def main():
         print(f"Last updated date for channel {channel_name} (ID: {channel_id}): {last_date}")
         
         # Crawl first 20 pages for each channel
-        for page_num in tqdm(range(1500, 1, -1), desc=f"Crawling channel {channel_name}"):
+        for page_num in tqdm(range(1000, 1, -1), desc=f"Crawling channel {channel_name}"):
             articles = craw_a_page(session, channel_info, page_num)
-            if not articles:
-                print(f"No articles found on page {page_num}, stopping.")
-                break
+            # if not articles:
+            #     print(f"No articles found on page {page_num}, stopping.")
+            #     break
             
             # Filter articles by last_date
+            page_exist = True
             if last_date:
                 selected_articles = []
                 for article in articles:
@@ -235,17 +236,14 @@ def main():
                         selected_articles.append(article)
                 
                 if not selected_articles:
-                    print(f"No new articles after {last_date}, stopping.")
-                    break
+                    page_exist = False
             else:
                 selected_articles = articles
             
-            inserted_count = save_urls_batch_to_bigquery(selected_articles)
-            # if inserted_count == 0:
-            #     print("No new articles to insert, stopping.")
-            #     break
-            
-            time.sleep(0.5)  # Be polite to the server
+            if page_exist:
+                inserted_count = save_urls_batch_to_bigquery(selected_articles)
+
+                time.sleep(0.5)  # Be polite to the server
             
     print("Crawling complete.")
     
