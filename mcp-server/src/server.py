@@ -3,7 +3,9 @@ import os
 import importlib
 import argparse
 from mcp.server.fastmcp import FastMCP
-from influx_client import InfluxDBClient
+from client import BigQueryClient
+from dotenv import load_dotenv
+load_dotenv()
 
 # --- 서버 및 클라이언트 초기화 ---
 mcp = FastMCP(
@@ -12,7 +14,11 @@ mcp = FastMCP(
     version="6.1.0",
 )
 
-client = InfluxDBClient()
+client = BigQueryClient(
+    credentials_path=os.getenv('GOOGLE_APPLICATION_CREDENTIALS'),
+    project_id=os.getenv('GCP_PROJECT_ID'),
+    limit_time=os.getenv('LIMIT_TIME')
+)
 
 
 script_dir = os.path.dirname(os.path.abspath(__file__))

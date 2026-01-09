@@ -1,1 +1,4 @@
 fastmcp
+anyio
+python-dotenv
+google-cloud-bigquery
