@@ -2,20 +2,20 @@
 import os
 import importlib
 import argparse
-from mcp.server.fastmcp import FastMCP
+from fastmcp import FastMCP
 from client import BigQueryClient
 from dotenv import load_dotenv
 load_dotenv()
 
-# --- 서버 및 클라이언트 초기화 ---
-mcp = FastMCP(
-    title="InfluxDBv1-MCP (Auto-Discovery & Robust Path)",
-    description="실행 경로에 관계없이 안정적으로 작동하는, 자동 탐색 기반의 MCP 서버입니다.",
-    version="6.1.0",
-)
+current_dir = os.path.dirname(os.path.abspath(__file__))
 
+# --- 서버 및 클라이언트 초기화 ---
+mcp = FastMCP("Tools for Financal Data Analysis")
+
+
+credentials_path = os.path.join(current_dir, "..", "keys", "bigquery.json")
 client = BigQueryClient(
-    credentials_path=os.getenv('GOOGLE_APPLICATION_CREDENTIALS'),
+    credentials_path=credentials_path,
     project_id=os.getenv('GCP_PROJECT_ID'),
     limit_time=os.getenv('LIMIT_TIME')
 )

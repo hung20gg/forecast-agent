@@ -20,14 +20,8 @@ class BigQueryClient:
         self.limit_time = limit_time or os.getenv('LIMIT_TIME')
         
         if self.credentials_path:
-            credentials = service_account.Credentials.from_service_account_file(
-                self.credentials_path,
-                scopes=["https://www.googleapis.com/auth/bigquery"]
-            )
-            self.client = bigquery.Client(
-                credentials=credentials,
-                project=self.project_id
-            )
+
+            self.client = bigquery.Client.from_service_account_json(self.credentials_path, project=self.project_id)
         else:
             # Use default credentials (for Cloud environments)
             self.client = bigquery.Client(project=self.project_id)
