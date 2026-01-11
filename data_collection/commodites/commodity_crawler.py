@@ -102,6 +102,33 @@ class CommodityPriceFetcher:
         
         return monthly
     
+    def calculate_ema(self, data, periods):
+        """
+        Tính EMA (Exponential Moving Average) cho nhiều periods
+        
+        Parameters:
+        -----------
+        data : pd.DataFrame
+            Dữ liệu với cột 'Close'
+        periods : list
+            List các periods cần tính EMA (e.g., [12, 26, 20, 50])
+        
+        Returns:
+        --------
+        pd.DataFrame
+            DataFrame với các cột EMA được thêm vào
+        """
+        if data.empty:
+            return data
+        
+        data_with_ema = data.copy()
+        
+        for period in periods:
+            ema_col = f'EMA{period}'
+            data_with_ema[ema_col] = data_with_ema['Close'].ewm(span=period, adjust=False).mean()
+        
+        return data_with_ema
+    
     def fetch_all_commodities(self, start_date='2010-01-01', end_date=None):
         """
         Lấy dữ liệu tất cả commodities
@@ -145,8 +172,13 @@ class CommodityPriceFetcher:
             - indicator_name
             - value
             - volume
+            - ema12, ema26 (for monthly)
+            - ema20, ema50 (for daily)
         """
         all_records = []
+        
+        # Determine which EMAs to calculate based on duration
+        ema_periods = [20, 50] if duration == 'daily' else [12, 26]
         
         for symbol, data in data_dict.items():
             if data.empty:
@@ -158,6 +190,9 @@ class CommodityPriceFetcher:
             if duration == 'monthly':
                 data = self.convert_to_monthly(data)
             
+            # Calculate EMAs
+            data = self.calculate_ema(data, ema_periods)
+            
             # Tạo records cho format long
             for timestamp, row in data.iterrows():
                 record = {
@@ -168,6 +203,15 @@ class CommodityPriceFetcher:
                     'value': row['Close'],  # Giá đóng cửa
                     'volume': row['Volume']
                 }
+                
+                # Add EMAs based on duration
+                if duration == 'daily':
+                    record['ema20'] = row.get('EMA20', None)
+                    record['ema50'] = row.get('EMA50', None)
+                else:  # monthly
+                    record['ema12'] = row.get('EMA12', None)
+                    record['ema26'] = row.get('EMA26', None)
+                
                 all_records.append(record)
         
         df = pd.DataFrame(all_records)

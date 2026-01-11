@@ -55,8 +55,8 @@ async def query_stock_value_monthly(
             time,
             close,
             volume,
-            EMA20,
-            EMA50
+            EMA12,
+            EMA26
         FROM 
             `ktln.stock_monthly`
         WHERE 

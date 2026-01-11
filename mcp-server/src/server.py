@@ -61,7 +61,7 @@ except Exception as e:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="InfluxDB v1 MCP Server")
     parser.add_argument("--transport", choices=["sse", "http", "stdio"], default="sse")
-    parser.add_argument("--host", default="0.0.0.0")
+    parser.add_argument("--host", default="localhost")
     parser.add_argument("--port", type=int, default=9003)
     args = parser.parse_args()
 

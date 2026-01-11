@@ -1,0 +1,5 @@
+langgraph
+openai
+google-genai
+pillow
+fastmcp
