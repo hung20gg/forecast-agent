@@ -54,6 +54,14 @@ def create_table_if_not_exists(table_full_id: str):
         table = bq_client.get_table(table_full_id)
         print(f"Table {table_full_id} already exists")
         
+        table.time_partitioning = bigquery.TimePartitioning(
+            type_=bigquery.TimePartitioningType.MONTH,
+            field="time"
+        )
+        
+        # Clustering
+        table.clustering_fields = ["indicator_name"]
+        
         # # Update clustering if not set
         # if not table.clustering_fields or "url" not in table.clustering_fields:
         #     print("Adding URL clustering to existing table...")

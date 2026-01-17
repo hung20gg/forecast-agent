@@ -109,16 +109,20 @@ def create_table_if_not_exists():
         print(f"Table {TABLE_ID} already exists")
         
         # Update clustering if not set
-        if not table.clustering_fields or "url" not in table.clustering_fields:
-            print("Adding URL clustering to existing table...")
-            table.clustering_fields = ["url"]
+        if not table.clustering_fields or "channel_name" not in table.clustering_fields:
+            print("Adding channel_name clustering to existing table...")
+            table.clustering_fields = ["channel_name"]
             table = bq_client.update_table(table, ["clustering_fields"])
-            print("URL clustering added successfully")
+            print("channel_name clustering added successfully")
     except Exception as e:
         print(f"Table doesn't exist, creating: {e}")
         table = bigquery.Table(TABLE_FULL_ID, schema=schema)
         # Cluster by URL for faster deduplication queries
-        table.clustering_fields = ["url"]
+        table.clustering_fields = ["channel_name", "source"]
+        table.time_partitioning = bigquery.TimePartitioning(
+            type_=bigquery.TimePartitioningType.MONTH,
+            field="pub_date"
+        )
         table = bq_client.create_table(table)
         print(f"Created table {TABLE_ID} with schema and URL clustering, please wait...")
         

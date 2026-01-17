@@ -33,8 +33,10 @@ def create_table_if_not_exists(table_full_id: str):
     
     if 'indices' in table_full_id:
         name_value = bigquery.SchemaField("index_name", "STRING", mode="REQUIRED")
+        cluster_field = "index_name"
     else:
         name_value = bigquery.SchemaField("stock_code", "STRING", mode="REQUIRED")
+        cluster_field = "stock_code"
     
     if 'monthly' in table_full_id:
         span_ema_fields = [
@@ -70,6 +72,13 @@ def create_table_if_not_exists(table_full_id: str):
     except Exception as e:
         print(f"Table doesn't exist, creating: {e}")
         table = bigquery.Table(table_full_id, schema=schema)
+        
+        table.time_partitioning = bigquery.TimePartitioning(
+            type_=bigquery.TimePartitioningType.MONTH
+        )
+
+        # Clustering
+        table.clustering_fields = [cluster_field]
 
         table = bq_client.create_table(table)
         print(f"Created table {table_full_id} with schema, please wait...")

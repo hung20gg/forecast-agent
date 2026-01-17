@@ -39,14 +39,16 @@ class BigQueryClient:
             print(f"Connection test failed: {e}")
             return False
         
-    def execute_query(self, query: str):
+    def execute_query(self, query: str, **kwargs):
         """Execute a SQL query and return the results."""
-        query_job = self.client.query(query)
+        query_job = self.client.query(query, **kwargs)
         return query_job.result()
     
-    async def aexecute_query(self, query: str):
+    async def aexecute_query(self, query: str, **kwargs):
         """Execute a SQL query asynchronously and return the results."""
-        loop = asyncio.get_event_loop()
-        query_job = await loop.run_in_executor(None, self.client.query, query)
-        result = await loop.run_in_executor(None, query_job.result)
-        return result
+        loop = asyncio.get_running_loop()
+
+        def run():
+            return self.client.query(query, **kwargs).result()
+
+        return await loop.run_in_executor(None, run)
