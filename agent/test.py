@@ -49,41 +49,41 @@ async def main():
         print("Tool call result:")
         print(result)
         
-        # messages = [
-        #     {
-        #         "role": "user",
-        #         "content": "Tin tức từ VIC từ 1/1/2025 đến 1/6/2025"
-        #     }
-        # ]
+        messages = [
+            {
+                "role": "user",
+                "content": "Tin tức từ VIC từ 1/1/2025 đến 1/6/2025"
+            }
+        ]
         
 
-        # tool_responses = llm.tool_calling(messages, tools=openai_tools)
+        tool_responses = llm.tool_calling(messages, tools=openai_tools)
         
-        # messages.append({
-        #     "role": "assistant",
-        #     "tool_calls": tool_responses
-        # })
+        messages.append({
+            "role": "assistant",
+            "tool_calls": tool_responses
+        })
         
-        # print(tool_responses)
-        # for tool_response in tool_responses:
-        #     tool_id = tool_response.get("id")
-        #     function = tool_response.get("function")
-        #     function_name = function.get("name")
-        #     arguments = json.loads(function.get("arguments"))
+        print(tool_responses)
+        for tool_response in tool_responses:
+            tool_id = tool_response.get("id")
+            function = tool_response.get("function")
+            function_name = function.get("name")
+            arguments = json.loads(function.get("arguments"))
             
-        #     tool_result = await client.call_tool(function_name, arguments)
+            tool_result = await client.call_tool(function_name, arguments)
             
-        #     messages.append({
-        #         "role": "tool",
-        #         "tool_call_id": tool_id,
-        #         "content": json.dumps(tool_result.content[0].text)
-        #     })
+            messages.append({
+                "role": "tool",
+                "tool_call_id": tool_id,
+                "content": json.dumps(tool_result.content[0].text)
+            })
             
-        # response = llm(messages)
+        response = llm(messages)
         
-        # print("Final LLM response:")
-        # print(response)
+        print("Final LLM response:")
+        print(response)
             
         
-        # print(tool_responses)
+        print(tool_responses)
 asyncio.run(main())
