@@ -1,4 +1,0 @@
-beautifulsoup4
-curl_cffi
-google-cloud-bigquery
-tqdm
