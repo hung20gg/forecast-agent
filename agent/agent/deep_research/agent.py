@@ -13,5 +13,6 @@ class OpenDeepResearchAgent(BaseAgentMCP):
         pass
 
 
-    async def final_report_generation(state)
+    async def final_report_generation(state):
+        pass
     
