@@ -66,7 +66,6 @@ def schema_for_company_info():
         bigquery.SchemaField("is_bank", "BOOLEAN", mode="NULLABLE"),
         bigquery.SchemaField("is_securities", "BOOLEAN", mode="NULLABLE"),
         bigquery.SchemaField("market_cap", "FLOAT64", mode="NULLABLE"),
-        bigquery.SchemaField("date_added", "TIMESTAMP", mode="REQUIRED"),
     ]
     return schema
 
@@ -135,7 +134,7 @@ def upload_dataframe_to_bigquery(df: pd.DataFrame, table_full_id: str):
     if 'date_added' in df.columns:
         df['date_added'] = pd.to_datetime(df['date_added'])
         
-    df = df.dropna(subset=['date_added'])
+        df = df.dropna(subset=['date_added'])
     
     job_config = bigquery.LoadJobConfig(
         write_disposition=bigquery.WriteDisposition.WRITE_APPEND,
@@ -166,16 +165,16 @@ def main():
     # df_fs = pd.read_parquet('../data/financial_statement_v3.parquet')
     # upload_dataframe_to_bigquery(df_fs, TABLE_FINANCIAL_STATEMENT)
     
-    df_fr = pd.read_parquet('../data/financial_ratio_v3.parquet')
-    upload_dataframe_to_bigquery(df_fr, TABLE_FINANCIAL_RATIO)
+    # df_fr = pd.read_parquet('../data/financial_ratio_v3.parquet')
+    # upload_dataframe_to_bigquery(df_fr, TABLE_FINANCIAL_RATIO)
     
-    df_fs_dim = pd.read_csv('transform/metadata/map_category_code.csv')
-    upload_dataframe_to_bigquery(df_fs_dim, TABLE_FINANCIAL_STATEMENT_DIM)
+    # df_fs_dim = pd.read_csv('transform/metadata/map_category_code.csv')
+    # upload_dataframe_to_bigquery(df_fs_dim, TABLE_FINANCIAL_STATEMENT_DIM)
     
-    df_fr_dim = pd.read_csv('transform/metadata/map_ratio_code.csv')
-    upload_dataframe_to_bigquery(df_fr_dim, TABLE_FINANCIAL_RATIO_DIM)
+    # df_fr_dim = pd.read_csv('transform/metadata/map_ratio_code.csv')
+    # upload_dataframe_to_bigquery(df_fr_dim, TABLE_FINANCIAL_RATIO_DIM)
     
-    df_company_info = pd.read_csv('../data/df_company_info.csv')
+    df_company_info = pd.read_csv('transform/metadata/df_company_info.csv')
     upload_dataframe_to_bigquery(df_company_info, TABLE_COMPANY_INFO)
 
 if __name__ == "__main__":
