@@ -345,3 +345,82 @@ Net cash flow during the period,CF_100
 Cash and cash equivalents at the beginning of the period,CF_110
 Effects of exchange rate changes on foreign currency conversion,CF_120
 Cash and cash equivalents at the end of the period,CF_130
+(Explaination) Debt securities,Bank_TM_2
+(Explaination) Equity securities,Bank_TM_8
+(Explaination) Other trading securities,Bank_TM_12
+(Explaination) Provision for trading securities risk,Bank_TM_13
+(Explaination) Listing status of trading securities,Bank_TM_17
+(Explaination) Loans to domestic economic organizations and individuals,Bank_TM_28
+(Explaination) Discount of commercial papers and valuable papers,Bank_TM_29
+(Explaination) Financial leasing,Bank_TM_30
+(Explaination) Payments on behalf of customers,Bank_TM_31
+(Explaination) Loans funded by investment trust,Bank_TM_32
+(Explaination) Loans to foreign organizations and individuals,Bank_TM_33
+(Explaination) Loans designated by the Government,Bank_TM_34
+(Explaination) Frozen loans and loans pending resolution,Bank_TM_35
+(Explaination) Other loans,Bank_TM_36
+(Explaination) Loans to the trade industry,Bank_TM_38
+(Explaination) Loans to agriculture and forestry,Bank_TM_39
+(Explaination) Loans to the manufacturing industry,Bank_TM_40
+(Explaination) Loans to the construction industry,Bank_TM_45
+(Explaination) Loans to community and personal services,Bank_TM_46
+"(Explaination) Loans to warehousing, transportation, and telecommunications",Bank_TM_55
+(Explaination) Loans to service and training,Bank_TM_58
+(Explaination) Loans to real estate and consulting,Bank_TM_61
+(Explaination) Loans to hotels and restaurants,Bank_TM_62
+(Explaination) Loans to financial services,Bank_TM_63
+(Explaination) Loans to other industries,Bank_TM_64
+(Explaination) Standard debts (Group 1 debts),Bank_TM_66
+(Explaination) Debts needing attention (Group 2 debts),Bank_TM_67
+(Explaination) Substandard debts (Group 3 debts),Bank_TM_68
+(Explaination) Doubtful debts (Group 4 debts),Bank_TM_69
+(Explaination) Bad debts with potential loss of capital (Group 5 debts),Bank_TM_70
+(Explaination) Short-term loans,Bank_TM_72
+(Explaination) Medium-term loans,Bank_TM_73
+(Explaination) Long-term loans,Bank_TM_74
+(Explaination) Loans to State-owned enterprises,Bank_TM_85
+(Explaination) Loans to Limited liability and joint-stock companies,Bank_TM_86
+(Explaination) Loans to Foreign enterprises,Bank_TM_87
+(Explaination) Loans to Cooperatives and private companies,Bank_TM_88
+(Explaination) Loans to Individuals,Bank_TM_89
+(Explaination) Loans - Other,Bank_TM_90
+(Explaination) Demand deposits,Bank_TM_121
+(Explaination) Term deposits,Bank_TM_122
+(Explaination) Savings deposits,Bank_TM_123
+(Explaination) Margin deposits,Bank_TM_124
+(Explaination) Deposits for specific purposes,Bank_TM_125
+(Explaination) Deposits from State-owned enterprises,Bank_TM_130
+(Explaination) Deposits from Private enterprises,Bank_TM_131
+(Explaination) Deposits from Foreign enterprises,Bank_TM_132
+(Explaination) Deposits from Individuals,Bank_TM_133
+(Explaination) Interest income and similar income,Bank_TM_134
+(Explaination) Holding Cash,Share_TM_1
+(Explaination) Bank deposits,Share_TM_2
+(Explaination) VALUE OF TRANSACTIONS PERFORMED DURING THE PERIOD BY SECURITIES COMPANIES,Sec_TM_100
+(Explaination) Value of Stocks (Securities firms),Sec_TM_101
+(Explaination) Value of Bonds (Securities firms),Sec_TM_102
+(Explaination) VALUE OF TRANSACTIONS PERFORMED DURING THE PERIOD BY INVESTORS,Sec_TM_108
+(Explaination) Value of Stocks (Inverstors),Sec_TM_109
+(Explaination) Value of Bonds (Inverstors),Sec_TM_110
+(Explaination) PROVISION FOR IMPAIRMENT OF FINANCIAL ASSETS,Sec_TM_246
+"(Explaination) Payables on behalf of investors for dividends, principal, and interest of bonds",Sec_TM_371
+(Explaination) Bank loans,Share_TM_3
+(Explaination) Loans from other entities,Share_TM_4
+(Explaination) Bonds issued,Share_TM_5
+(Explaination) Financial leases,Share_TM_6
+(Explaination) Other long-term liabilities,Sec_TM_413
+(Explaination) Short-term investments,Corp_TM_7
+"(Explaination) Raw materials, supplies",Corp_TM_20
+(Explaination) Finished goods,Corp_TM_23
+(Explaination) Merchandise,Corp_TM_24
+(Explaination) Goods on consignment,Corp_TM_25
+(Explaination) Goods in bonded warehouses,Corp_TM_26
+(Explaination) Real estate goods,Corp_TM_27
+(Explaination) Sales revenue,Corp_TM_114
+(Explaination) Revenue from service provision,Corp_TM_115
+(Explaination) Revenue from construction contracts,Corp_TM_116
+(Explaination) Interest income from deposits and loans,Corp_TM_134
+"(Explaination) Interest income from bonds, promissory notes, treasury bills",Corp_TM_135
+"(Explaination) Dividends, profit share received",Corp_TM_136
+"(Explaination) Gain from sale, liquidation of investments",Corp_TM_137
+(Explaination) Loan interest,Corp_TM_144
