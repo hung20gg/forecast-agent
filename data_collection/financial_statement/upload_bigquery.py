@@ -36,8 +36,8 @@ def schema_for_financial_statement():
 def schema_for_financial_ratio():
     """Define schema for financial ratio table"""
     schema = [
+        bigquery.SchemaField("stock_code", "STRING", mode="REQUIRED"),
         bigquery.SchemaField("ratio_code", "STRING", mode="REQUIRED"),
-        bigquery.SchemaField("category_code", "STRING", mode="REQUIRED"),
         bigquery.SchemaField("data", "FLOAT64", mode="NULLABLE"),
         bigquery.SchemaField("year", "INTEGER", mode="NULLABLE"),
         bigquery.SchemaField("quarter", "INTEGER", mode="NULLABLE"),
@@ -90,6 +90,7 @@ def schema_for_financial_ratio_dim():
 
 
 def create_table_if_not_exists(table_full_id: str, schema: list[bigquery.SchemaField]):
+    print(table_full_id)
     """Create BigQuery table if it doesn't exist"""
     dataset_ref = bigquery.DatasetReference(PROJECT_ID, DATASET_ID)
     
@@ -126,12 +127,15 @@ def create_table_if_not_exists(table_full_id: str, schema: list[bigquery.SchemaF
         
         
 def upload_dataframe_to_bigquery(df: pd.DataFrame, table_full_id: str):
+    print(f"Uploading DataFrame to {table_full_id}")
     """Upload DataFrame to BigQuery table"""
     # Clean data: remove rows with null close values
 
     # Convert time column to datetime if it's not already
     if 'date_added' in df.columns:
         df['date_added'] = pd.to_datetime(df['date_added'])
+        
+    df = df.dropna(subset=['date_added'])
     
     job_config = bigquery.LoadJobConfig(
         write_disposition=bigquery.WriteDisposition.WRITE_APPEND,
@@ -159,8 +163,8 @@ def main():
         executor.map(lambda x: create_table_if_not_exists(x[0], x[1]), tables_to_create)
 
     
-    df_fs = pd.read_parquet('../data/financial_statement_v3.parquet')
-    upload_dataframe_to_bigquery(df_fs, TABLE_FINANCIAL_STATEMENT)
+    # df_fs = pd.read_parquet('../data/financial_statement_v3.parquet')
+    # upload_dataframe_to_bigquery(df_fs, TABLE_FINANCIAL_STATEMENT)
     
     df_fr = pd.read_parquet('../data/financial_ratio_v3.parquet')
     upload_dataframe_to_bigquery(df_fr, TABLE_FINANCIAL_RATIO)
