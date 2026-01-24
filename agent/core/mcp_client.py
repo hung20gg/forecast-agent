@@ -3,6 +3,7 @@ import fastmcp
 from typing import Dict, List, Any, Optional
 import asyncio
 import os
+from uuid import uuid4
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -23,19 +24,25 @@ def _fastmcp_to_openai_tools(tools) -> list:
     return openai_tools
 
 class MCPClient:
-    def __init__(self):
-        url = os.getenv("MCP_SERVER_URL")
-        self.client = Client(url)
+    def __init__(self, urls: Optional[List[str]] = None) -> None:
+        if urls is None:
+            url = os.getenv("MCP_SERVER_URL")
+            urls = [url] if url else []
+        self.clients = [Client(url) for url in urls]
+        self.mapping_client_tools: Dict[str, int] = {}
         self.tools: Optional[List[Dict[str, Any]]] = None
         self._initialized = False
 
     async def initialize(self) -> None:
         """Initialize the client and load tools"""
         if not self._initialized:
-            async with self.client:
-                tools = await self.client.list_tools()
-                self.tools = _fastmcp_to_openai_tools(tools)
-                self._initialized = True
+            for i, self.client in enumerate(self.clients):
+                async with self.client:
+                    tools = await self.client.list_tools()
+                    self.tools = _fastmcp_to_openai_tools(tools)
+                    self._initialized = True
+                    for tool in tools:
+                        self.mapping_client_tools[tool.name] = i
 
     async def _ensure_initialized(self) -> None:
         """Ensure client is initialized before use"""
@@ -44,8 +51,12 @@ class MCPClient:
 
     async def call_tool(self, tool_name: str, params: Dict[str, Any]) -> Any:
         await self._ensure_initialized()
-        async with self.client:
-            return await self.client.call_tool(tool_name, params)
+        client_index = self.mapping_client_tools.get(tool_name)
+        if client_index is None:
+            raise ValueError(f"Tool '{tool_name}' not found in any MCP client")
+        
+        async with self.clients[client_index]:
+            return await self.clients[client_index].call_tool(tool_name, params)
 
     def call_tool_sync(self, function_name: str, arguments: dict):
         """Synchronous wrapper for call_tool"""

@@ -1,24 +1,34 @@
-from agent import ReActAgent
-from core.state import AgentState
+from strategy import get_agent_state, get_agent_strategy
+import json
 
 import asyncio
 
 async def main():
     agent_config = {
+        "agent_type": "react",
+        "streaming": True,
         "model_name": "gpt-4.1-mini"
     }
-    state = AgentState()
+
+    agent_state_config = {
+        "agent_type": "react"
+    }
+
+    state = get_agent_state(**agent_state_config)
     state.messages.append({
         "role":'user',
         "content": "Dựa vào các công cụ sẵn có, dự đoán doanh thu quý 4 năm 2025 của VINGROUP. Bạn mới chỉ có dữ liệu quý 3 thôi. Hãy đưa ra dự đoán"
     })
 
 
-    agent = ReActAgent(**agent_config)
+    agent = get_agent_strategy(**agent_config)
     await agent.initialize()
 
-    result = await agent.invoke(state)
-    print(result)
+    # result = await agent.invoke(state)
+    # print(json.dumps(result, ensure_ascii=False, indent=2))
+    async for chunk in agent.stream(state, stream_mode="custom"):
+        if chunk.get('type') == 'content':
+            print(chunk.get('content'), end='', flush=True)
 
 if __name__ == "__main__":
 

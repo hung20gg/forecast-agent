@@ -4,14 +4,18 @@ from core.state import AgentState
 
 from typing import Optional
 from langgraph.graph import StateGraph
+from langgraph.config import get_stream_writer
 import json
+from typing import List, Dict, Any, AsyncIterable
 
 class BaseAgentMCP:
-    def __init__(self, model_name: str, message_saver: Optional[str] = None) -> None:
+    def __init__(self, model_name: str, urls: Optional[List[str]] = None, streaming: bool = False, message_saver: Optional[str] = None) -> None:
         self.llm = get_llm_wrapper(model_name)
-        self.mcp_client = MCPClient()
+        self.mcp_client = MCPClient(urls)
         self._initialized = False
         self.graph = self.build_graph()
+        self.streaming = streaming
+        self.stream_writer = None
 
 
         if message_saver == 'mongodb':
@@ -38,13 +42,13 @@ class BaseAgentMCP:
         pass
 
 
-    def is_finished(self, state: AgentState):
+    def is_finished(self, state: AgentState) -> str:
         if len(state.messages[-1].get("tool_calls", [])) == 0:
             return 'end'
         return 'continue'
 
 
-    async def tool_execute(self, state: AgentState):
+    async def tool_execute(self, state: AgentState) -> AgentState:
 
         tool_messages = []
         for tool_response in state.messages[-1].get("tool_calls", []):
@@ -65,12 +69,27 @@ class BaseAgentMCP:
         return state
     
 
-    async def tool_calling(self, state: AgentState):
+    async def tool_calling(self, state: AgentState) -> AgentState:
 
-        tool_responses = await self.llm.tool_calling_async(messages=state.messages, tools = self.mcp_client.tools)
-        
-        content = tool_responses.get('content')
-        tool_calls = tool_responses.get('tool_calls')
+        if not self.streaming:
+            tool_responses = await self.llm.tool_calling_async(messages=state.messages, tools = self.mcp_client.tools)
+            content = tool_responses.get('content')
+            tool_calls = tool_responses.get('tool_calls')
+        else:
+            # Get stream writer inside the graph execution context
+            stream_writer = get_stream_writer()
+            content = ""
+            tool_calls = []
+
+
+            async for chunk in self.llm.stream_tool_calling_async(state.messages, tools = self.mcp_client.tools):
+                if isinstance(chunk, dict) and chunk.get('type') == 'content':
+                    content += chunk.get('content', '')
+                    stream_writer({'type': 'content', 'content': chunk.get('content', '')})
+
+                elif isinstance(chunk, dict) and chunk.get('type') == 'function':
+                    tool_calls.append(chunk)
+                    stream_writer({'type': 'log', 'log': 'Identified tool call: ' + str(chunk) + '\n'})
 
         state.messages.append({
             'role': "assistant",
@@ -79,6 +98,14 @@ class BaseAgentMCP:
         })
 
         return state
+    
+
+    async def finalize(self, state: AgentState) -> AgentState:
+        if self.streaming:
+            stream_writer = get_stream_writer()
+            stream_writer({'type': 'state', 'state': state})
+        return state
+
             
     def build_graph(self):
         pass
@@ -96,4 +123,13 @@ class BaseAgentMCP:
 
         return state
 
+
+    async def stream(self, state: AgentState, stream_mode="custom") -> AsyncIterable[Dict[str, Any]]:
+        
+        if not self.graph:
+            raise ValueError("Workflow graph is not defined.")
+        
+        async for chunk in self.graph.astream(state, stream_mode=stream_mode):
+            yield chunk
+        
 

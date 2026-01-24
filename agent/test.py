@@ -13,7 +13,7 @@ print(f"Connecting to MCP server at {url}...")
 client = Client(url)
 
 
-llm = get_llm_wrapper("groq:openai/gpt-oss-120b")
+llm = get_llm_wrapper("gpt-4.1-mini")
 
 def fastmcp_to_openai_tools(tools) -> list:
     openai_tools = []
@@ -47,16 +47,19 @@ async def main():
         print("Converted tools to OpenAI format:")
         print(json.dumps(openai_tools, indent=2))
         # Execute operations
-        result = await client.call_tool("query_financial_ratio", {"stock_code": "VIC", "ratio_code": "ROA", "start_date": "2025-06-01", "end_date": "2025-10-01", "duration": "quarterly"})
+        result = await client.call_tool("get_exact_financial_statement_account", {"query": "(Bank) Revenue after tax"})
         print("Tool call result:")
-        print(result)
+        print(result.content[0].text)
         
-        # messages = [
-        #     {
-        #         "role": "user",
-        #         "content": "Tin tức từ VIC từ 1/1/2025 đến 1/6/2025"
-        #     }
-        # ]
+        messages = [
+            {
+                "role": "user",
+                "content": "Tin tức từ VIC từ 1/1/2025 đến 1/6/2025"
+            }
+        ]
+
+        for msg in llm.stream_tool_calling(messages, tools=openai_tools):
+            print('[STREAM]', msg, end='', flush=True)
         
 
         # tool_responses = llm.tool_calling(messages, tools=openai_tools)
@@ -67,12 +70,12 @@ async def main():
         # })
         
         # print(tool_responses)
-        # for tool_response in tool_responses:
+        # for tool_response in tool_responses['tool_calls']:
+        #     print(tool_response)
         #     tool_id = tool_response.get("id")
         #     function = tool_response.get("function")
         #     function_name = function.get("name")
-        #     arguments = json.loads(function.get("arguments"))
-            
+        #     arguments = json.loads(function.get("arguments"))            
         #     tool_result = await client.call_tool(function_name, arguments)
             
         #     messages.append({

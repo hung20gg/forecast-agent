@@ -11,10 +11,8 @@ async def _get_exact_financial_ratio_code(
     client: BigQueryClient,
     query: str,
 ) -> str:
-    
-    end_date = min(end_date, client.limit_time) if client.limit_time else end_date
-    
-    query = f"""
+        
+    sql = f"""
         SELECT
             ratio_code,
             ratio_name
@@ -27,17 +25,13 @@ async def _get_exact_financial_ratio_code(
                 bigquery.ScalarQueryParameter("query", "STRING", query),
             ]
         )
-    try:
         
-        results = await client.aexecute_query(query, job_config=job_config)
-        df = pd.DataFrame([dict(row) for row in results])
-        if df.empty:
-            return "No data found for the given parameters."
-        
-        return df.to_markdown(index=False)
-    except Exception as e:
-        logger.error(f"Error querying financial_ratio_code: {e}")
-        return f"Error querying financial_ratio_code: {e}"
+    results = await client.aexecute_query(sql, job_config=job_config)
+    df = pd.DataFrame([dict(row) for row in results])
+    if df.empty:
+        return "No data found for the given parameters."
+    
+    return df.to_markdown(index=False)
 
 
 
@@ -107,27 +101,20 @@ async def _query_financial_ratio(
 
     job_config = bigquery.QueryJobConfig(query_parameters=params)
 
-    try:
-        
-        results = await client.aexecute_query(sql, job_config=job_config)
-        df = pd.DataFrame([dict(row) for row in results])
-        if df.empty:
-            return "No data found for the given parameters."
-        
-        return df.to_markdown(index=False)
-    except Exception as e:
-        logger.error(f"Error querying financial_ratio: {e}")
-        return f"Error querying financial_ratio: {e}"
+    results = await client.aexecute_query(sql, job_config=job_config)
+    df = pd.DataFrame([dict(row) for row in results])
+    if df.empty:
+        return "No data found for the given parameters."
+    
+    return df.to_markdown(index=False)
 
 
 async def _get_exact_financial_statement_account(
     client: BigQueryClient,
     query: str,
 ) -> str:
-    
-    end_date = min(end_date, client.limit_time) if client.limit_time else end_date
-    
-    query = f"""
+        
+    sql = f"""
         SELECT
             category_name,
             category_code,
@@ -140,21 +127,18 @@ async def _get_exact_financial_statement_account(
         ORDER BY score DESC
         LIMIT 10;
     """
-    try:
-        job_config = bigquery.QueryJobConfig(
-            query_parameters=[
-                bigquery.ScalarQueryParameter("query", "STRING", query),
-            ]
-        )
-        results = await client.aexecute_query(query, job_config=job_config)
-        df = pd.DataFrame([dict(row) for row in results])
-        if df.empty:
-            return "No data found for the given parameters."
-        
-        return df.to_markdown(index=False)
-    except Exception as e:
-        logger.error(f"Error querying financial_ratio_code: {e}")
-        return f"Error querying financial_ratio_code: {e}"
+
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("query", "STRING", query),
+        ]
+    )
+    results = await client.aexecute_query(sql, job_config=job_config)
+    df = pd.DataFrame([dict(row) for row in results])
+    if df.empty:
+        return "No data found for the given parameters."
+    
+    return df.to_markdown(index=False)
 
 
 async def _query_financial_statement(
@@ -222,18 +206,13 @@ async def _query_financial_statement(
         raise ValueError("duration must be 'quarterly' or 'annually'")
 
     job_config = bigquery.QueryJobConfig(query_parameters=params)
-
-    try:
         
-        results = await client.aexecute_query(sql, job_config=job_config)
-        df = pd.DataFrame([dict(row) for row in results])
-        if df.empty:
-            return "No data found for the given parameters."
-        
-        return df.to_markdown(index=False)
-    except Exception as e:
-        logger.error(f"Error querying financial_ratio: {e}")
-        return f"Error querying financial_ratio: {e}"
+    results = await client.aexecute_query(sql, job_config=job_config)
+    df = pd.DataFrame([dict(row) for row in results])
+    if df.empty:
+        return "No data found for the given parameters."
+    
+    return df.to_markdown(index=False)
 
 
 
@@ -245,7 +224,7 @@ def register_tool(mcp, client: BigQueryClient):
         Since financial ratio codes and names can be numerous and complex, this tool helps to find the exact financial ratio code based on a user query.
         
         Args:
-            query: User query to find the exact financial ratio code
+            query: User query to find the exact financial ratio code. Should be in English.
         Returns:
             Financial ratio code as a string or error message
         """
@@ -281,7 +260,7 @@ def register_tool(mcp, client: BigQueryClient):
         Since financial statement accounts can be numerous and complex, this tool helps to find the exact account based on a user query.
         
         Args:
-            query: User query to find the exact financial statement account
+            query: User query to find the exact financial statement account. Should be in English.
         Returns:
             Financial statement account as a string or error message
         """

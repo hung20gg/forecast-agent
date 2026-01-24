@@ -29,16 +29,13 @@ async def query_commodities_value_daily(
         ORDER BY 
             time ASC
     """
-    try:
-        results = await client.aexecute_query(query)
-        df = pd.DataFrame([dict(row) for row in results])
-        if df.empty:
-            return "No data found for the given parameters."
-        
-        return df.to_markdown(index=False)
-    except Exception as e:
-        logger.error(f"Error querying stock value: {e}")
-        return f"Error querying stock value: {e}"
+    results = await client.aexecute_query(query)
+    df = pd.DataFrame([dict(row) for row in results])
+    if df.empty:
+        return "No data found for the given parameters."
+    
+    return df.to_markdown(index=False)
+
 
 
 async def query_commodities_value_monthly(
@@ -65,16 +62,12 @@ async def query_commodities_value_monthly(
         ORDER BY 
             time ASC
     """
-    try:
-        results = await client.aexecute_query(query)
-        df = pd.DataFrame([dict(row) for row in results])
-        if df.empty:
-            return "No data found for the given parameters."
-        
-        return df.to_markdown(index=False)
-    except Exception as e:
-        logger.error(f"Error querying stock value: {e}")
-        return f"Error querying stock value: {e}"
+    results = await client.aexecute_query(query)
+    df = pd.DataFrame([dict(row) for row in results])
+    if df.empty:
+        return "No data found for the given parameters."
+    
+    return df.to_markdown(index=False)
 
 
 def register_tool(mcp, client: BigQueryClient):
