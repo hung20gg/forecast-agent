@@ -3,6 +3,7 @@ from google.oauth2 import service_account
 import os
 from typing import Optional
 import asyncio
+from env_config import get_env
 
 class BigQueryClient:
     """Client for authenticating and interacting with Google BigQuery."""
@@ -15,9 +16,9 @@ class BigQueryClient:
             credentials_path: Path to service account JSON credentials file
             project_id: Google Cloud project ID
         """
-        self.credentials_path = credentials_path or os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
-        self.project_id = project_id or os.getenv('GCP_PROJECT_ID')
-        self.limit_time = limit_time or os.getenv('LIMIT_TIME')
+        self.credentials_path = credentials_path or get_env('GOOGLE_APPLICATION_CREDENTIALS')
+        self.project_id = project_id or get_env('GCP_PROJECT_ID')
+        self.limit_time = limit_time or get_env('LIMIT_TIME')
         
         if self.credentials_path:
 

@@ -52,6 +52,7 @@ class BaseAgentMCP:
 
         tool_messages = []
         for tool_response in state.messages[-1].get("tool_calls", []):
+            print('Executing tool call:', tool_response)
             tool_id = tool_response.get("id")
             function = tool_response.get("function")
             function_name = function.get("name")

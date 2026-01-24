@@ -4,8 +4,10 @@ import importlib
 import argparse
 from fastmcp import FastMCP
 from client import BigQueryClient
-from dotenv import load_dotenv
-load_dotenv()
+from env_config import load_env_config, get_env
+
+# Load environment configuration
+load_env_config()
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -16,8 +18,8 @@ mcp = FastMCP("Tools for Financal Data Analysis")
 credentials_path = os.path.join(current_dir, "..", "keys", "bigquery.json")
 client = BigQueryClient(
     credentials_path=credentials_path,
-    project_id=os.getenv('GCP_PROJECT_ID'),
-    limit_time=os.getenv('LIMIT_TIME')
+    project_id=get_env('GCP_PROJECT_ID'),
+    limit_time=get_env('LIMIT_TIME')
 )
 
 

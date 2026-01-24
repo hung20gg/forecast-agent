@@ -4,8 +4,10 @@ from typing import Dict, List, Any, Optional
 import asyncio
 import os
 from uuid import uuid4
-from dotenv import load_dotenv
-load_dotenv()
+from .env_config import load_env_config, get_env
+
+# Load environment configuration
+load_env_config()
 
 def _fastmcp_to_openai_tools(tools) -> list:
     openai_tools = []
@@ -26,7 +28,7 @@ def _fastmcp_to_openai_tools(tools) -> list:
 class MCPClient:
     def __init__(self, urls: Optional[List[str]] = None) -> None:
         if urls is None:
-            url = os.getenv("MCP_SERVER_URL")
+            url = get_env("MCP_SERVER_URL")
             urls = [url] if url else []
         self.clients = [Client(url) for url in urls]
         self.mapping_client_tools: Dict[str, int] = {}

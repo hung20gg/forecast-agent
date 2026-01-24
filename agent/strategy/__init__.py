@@ -1,3 +1,11 @@
+import sys
+from pathlib import Path
+
+# Load environment config before any other imports
+sys.path.insert(0, str(Path(__file__).parent.parent / 'core'))
+from env_config import load_env_config
+load_env_config()
+
 from .react.agent import ReActAgent
 from .react.state import ReActAgentState
 from .deep_research.agent import OpenDeepResearchAgent

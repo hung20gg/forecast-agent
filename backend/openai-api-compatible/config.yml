@@ -1,0 +1,22 @@
+# Model mapping configuration
+# Format: "alias:base_model" -> strategy_type
+# Example: "react:gpt-4" will use ReAct strategy with GPT-4
+
+models:
+  react:
+    strategy: "react"
+    description: "ReAct agent strategy for reasoning and acting"
+  
+  open-deep-research:
+    strategy: "open-deep-research"
+    description: "Deep research strategy for comprehensive analysis"
+
+# Default base models if not specified
+default_models:
+  - "gpt-4.1-mini"
+
+# Server configuration
+server:
+  host: "0.0.0.0"
+  port: 8000
+  api_key: null  # Set to require API key authentication, null for no auth
