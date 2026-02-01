@@ -163,12 +163,14 @@ async def create_chat_completion(
     agent_config = get_agent_config(**agent_config)
     
     # Add user messages (filter out system messages from request)
-    for msg in request.messages:
+    for msg in request.messages[:-1]:
         if msg.role != "system":  # Skip user-provided system messages
             state.messages.append({
                 "role": msg.role,
                 "content": msg.content
             })
+
+    state.user_request = request.messages[-1].content  # Last message is user request
     
     # Create and initialize agent
     agent = get_agent(config=agent_config)
@@ -258,7 +260,7 @@ async def complete_non_streaming(agent, state, model: str):
     created = int(time.time())
     
     try:
-        result = await agent.invoke(state)
+        result = await agent.ainvoke(state)
         
         # Extract final assistant message
         final_message = None

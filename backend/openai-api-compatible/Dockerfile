@@ -1,5 +1,5 @@
 # Multi-stage build for optimized final image
-FROM python:3.11-slim as builder
+FROM python:3.11-slim AS builder
 
 # Install build dependencies
 RUN apt-get update && \
@@ -20,7 +20,7 @@ RUN pip install --no-cache-dir --user -r /build/agent-requirements.txt && \
     pip install --no-cache-dir --user -r /build/backend-requirements.txt
 
 # Clone LLM repository if needed
-ARG LLM_REPO_URL=""
+ARG LLM_REPO_URL="https://github.com/hung20gg/llm.git"
 RUN if [ -n "$LLM_REPO_URL" ]; then \
         git clone "$LLM_REPO_URL" /build/llm; \
     fi

@@ -31,9 +31,19 @@ class ReActAgent(BaseAgentMCP):
                     )
                 }
             )
+        if state.messages[0]['role'] != 'system':
+            state.messages.insert(0,
+                {
+                    "role": "system",
+                    "content": REACT_SYSTEM_PROMPT.format(
+                        current_time=self.config.current_time,
+                        maximum_iterations=self.config.max_tool_calls
+                    )
+                }
+            )
 
         if state.current_iteration == 0:
-            state.current_iteration = 1
+            state.current_iteration += 1
             state.messages.append(
                 {
                     "role": "user",
@@ -59,6 +69,11 @@ class ReActAgent(BaseAgentMCP):
         state.messages[-1]['content'] = last_message
 
         return await super().tool_calling(state)
+    
+    async def finalize(self, state: ReActAgentState) -> ReActAgentState:
+
+        state.current_iteration = 0  # Reset iteration for next invocation
+        return await super().finalize(state)
 
 
     def build_graph(self) -> StateGraph:

@@ -36,6 +36,8 @@ COPY --chown=appuser:appuser . .
 
 # Update PATH for user-installed packages
 ENV PATH=/home/appuser/.local/bin:$PATH
+# Disable Python output buffering for real-time logs
+ENV PYTHONUNBUFFERED=1
 
 # Switch to non-root user
 USER appuser

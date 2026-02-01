@@ -7,7 +7,8 @@ async def main():
     agent_config = {
         "agent_type": "react",
         "streaming": True,
-        "model_name": "gpt-4.1-mini"
+        "model_name": "gpt-4.1-mini",
+        "urls" : ["http://localhost:9003/sse"]
     }
 
     agent_state_config = {

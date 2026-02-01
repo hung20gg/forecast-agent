@@ -63,10 +63,12 @@ class BaseAgentMCP:
             tool_id = tool_response.get("id")
             function = tool_response.get("function")
             function_name = function.get("name")
-            print(function.get("arguments"))
+            print("[FUNCTION]:", function_name, function.get("arguments"))
             arguments = json.loads(function.get("arguments"))
 
             tool_result = await self.mcp_client.call_tool(function_name, arguments)
+
+            print("[TOOL RESULT]:", json.dumps(tool_result.content[0].text))
             
             tool_responses.append({
                 "role": "tool",
