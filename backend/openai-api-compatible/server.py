@@ -19,7 +19,7 @@ load_env_config()
 agent_path = Path(__file__).parent.parent.parent / "agent"
 sys.path.insert(0, str(agent_path))
 
-from strategy import get_agent_state, get_agent_strategy
+from strategy import get_agent_state, get_agent, get_agent_config
 
 # Load configuration
 config_path = Path(__file__).parent / "config.yml"
@@ -68,7 +68,7 @@ class ChatCompletionResponse(BaseModel):
     choices: List[Choice]
     usage: Usage
 
-def parse_model_name(model: str) -> tuple[str, str]:
+def parse_model_name(model: str) -> tuple[Optional[str], str]:
     """Parse model name into strategy and base model.
     
     Examples:
@@ -160,6 +160,7 @@ async def create_chat_completion(
     
     # Create agent state and add messages (excluding system messages from user)
     state = get_agent_state(**state_config)
+    agent_config = get_agent_config(**agent_config)
     
     # Add user messages (filter out system messages from request)
     for msg in request.messages:
@@ -170,7 +171,7 @@ async def create_chat_completion(
             })
     
     # Create and initialize agent
-    agent = get_agent_strategy(**agent_config)
+    agent = get_agent(config=agent_config)
     await agent.initialize()
     
     if request.stream:
