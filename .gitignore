@@ -7,3 +7,8 @@ keys/
 .env
 
 data/
+
+.github/
+.claude/
+.qwen/
+.vscode/

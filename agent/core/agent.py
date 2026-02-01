@@ -7,22 +7,28 @@ from langgraph.graph import StateGraph
 from langgraph.config import get_stream_writer
 import json
 from typing import List, Dict, Any, AsyncIterable
+from pydantic import BaseModel
+class BaseAgentMCPConfig(BaseModel):
+    model_name: str
+    urls: Optional[List[str]] = None
+    streaming: bool = False
+    message_saver: Optional[str] = None
 
 class BaseAgentMCP:
-    def __init__(self, model_name: str, urls: Optional[List[str]] = None, streaming: bool = False, message_saver: Optional[str] = None) -> None:
-        self.llm = get_llm_wrapper(model_name)
-        self.mcp_client = MCPClient(urls)
+    def __init__(self, config: BaseAgentMCPConfig) -> None:
+        self.config = config
+        self.llm = get_llm_wrapper(config.model_name)
+        self.mcp_client = MCPClient(config.urls)
         self._initialized = False
         self.graph = self.build_graph()
-        self.streaming = streaming
-        self.stream_writer = None
+        self.streaming = config.streaming
 
 
-        if message_saver == 'mongodb':
+        if config.message_saver == 'mongodb':
             from llm.llm_logger.log_mongodb import LLMLogMongoDB
             self.llm = LLMLogMongoDB(llm=self.llm)
      
-        elif message_saver == 'postgres':
+        elif config.message_saver == 'postgres':
             from llm.llm_logger.log_postgres import LLMLogPostgres
             self.llm = LLMLogPostgres(llm=self.llm)
 
@@ -108,11 +114,11 @@ class BaseAgentMCP:
         return state
 
             
-    def build_graph(self):
-        pass
+    def build_graph(self) -> Optional[StateGraph]:
+        return None
 
     
-    async def invoke(self, state: AgentState) -> AgentState:
+    async def ainvoke(self, state: AgentState) -> AgentState:
 
         if not self.graph:
             raise ValueError("Workflow graph is not defined.")
