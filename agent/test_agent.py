@@ -1,4 +1,4 @@
-from strategy import get_agent_state, get_agent_strategy
+from strategy import get_agent_state, get_agent_config, get_agent
 import json
 
 import asyncio
@@ -15,13 +15,11 @@ async def main():
     }
 
     state = get_agent_state(**agent_state_config)
-    state.messages.append({
-        "role":'user',
-        "content": "Dựa vào các công cụ sẵn có, dự đoán doanh thu quý 4 năm 2025 của VINGROUP. Bạn mới chỉ có dữ liệu quý 3 thôi. Hãy đưa ra dự đoán"
-    })
+    state.user_request = "Dựa vào các công cụ sẵn có, dự đoán doanh thu quý 4 năm 2025 của VINGROUP. Bạn mới chỉ có dữ liệu quý 3 thôi. Hãy đưa ra dự đoán"
 
+    agent_config = get_agent_config(**agent_config)
 
-    agent = get_agent_strategy(**agent_config)
+    agent = get_agent( config=agent_config)
     await agent.initialize()
 
     # result = await agent.invoke(state)

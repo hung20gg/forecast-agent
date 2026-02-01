@@ -1,0 +1,28 @@
+# Build artifacts
+/target/
+
+# Cargo lock file (include in version control for applications)
+# Cargo.lock
+
+# Environment files with secrets
+.env
+.env.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Keys and credentials (these should never be committed)
+keys/
+*.json
+!*.example.json
+
+# Logs
+*.log
+logs/

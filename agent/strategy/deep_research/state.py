@@ -1,46 +1,27 @@
 from core.state import AgentState
 
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 conduct_research_tool = {
         "type": "function",
         "function": {
             "name": "conduct_research_tool",
-            "description": "Get today's horoscope for an astrological sign.",
+            "description": "Conduct a research task.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "sign": {
+                    "research_task": {
                         "type": "string",
-                        "description": "An astrological sign like Taurus or Aquarius",
+                        "description": "The specific research task to be conducted.",
                     },
                 },
-                "required": ["sign"],
+                "required": ["research_task"],
                 "additionalProperties": False,
             },
             "strict": True,
         },
     }
 
-think_tool = {
-        "type": "function",
-        "function": {
-            "name": "think_tool",
-            "description": "Get today's horoscope for an astrological sign.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "reflection": {
-                        "type": "string",
-                        "description": "A reflection or thought related to the research process.",
-                    },
-                },
-                "required": ["reflection"],
-                "additionalProperties": False,
-            },
-            "strict": True,
-        },
-    }
 
 research_complete_tool = {
         "type": "function",
@@ -51,14 +32,31 @@ research_complete_tool = {
         },
     }
 
-class DeepResearchState(AgentState):
-
-    is_research_complete: bool = False
-    raw_messages: List[Dict[str, Any]] = []
-    supervisor_messages: List[Dict[str, Any]] = []
-    
-    
 class ResearcherState(AgentState):
 
+    task_id: Optional[str] = None
+    research_task: Optional[str] = None
+    compressed_research: Optional[str] = None
+
+    def to_tool_response(self) -> Dict[str, Any]:
+        return {
+            "role": 'tool',
+            "tool_call_id": self.task_id,
+            "content": self.compressed_research or "",
+        }
+
+class DeepResearchState(AgentState):
+
+    is_question_clarified: bool = False
+    clarified_counter: int = 0
+    is_research_complete: bool = False
+    research_briefs: List[str] = []
+    research_counter: int = 0
     raw_messages: List[Dict[str, Any]] = []
+    supervisor_messages: List[Dict[str, Any]] = []
+    research_tasks: List[ResearcherState] = []
+
+
+    
+
     

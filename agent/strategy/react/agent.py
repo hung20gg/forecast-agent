@@ -1,11 +1,65 @@
 from langgraph.graph import StateGraph, START, END
+import os
 
-from core.agent import BaseAgentMCP
+from core.agent import BaseAgentMCP, BaseAgentMCPConfig
 from .state import ReActAgentState
 
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+prompt_path = os.path.join(current_dir, '..', "..", "prompt", "react_system_prompt.md")
+with open(prompt_path, "r") as file:
+    REACT_SYSTEM_PROMPT = file.read()
+
+class ReActAgentConfig(BaseAgentMCPConfig):
+    agent_type: str = "react"
+    max_tool_calls: int = 5
+
 class ReActAgent(BaseAgentMCP):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, config: ReActAgentConfig) -> None:
+        super().__init__(config=config)
+
+
+    async def tool_calling(self, state: ReActAgentState) -> ReActAgentState:
+        
+        if len(state.messages) == 0:
+            state.messages.append(
+                {
+                    "role": "system",
+                    "content": REACT_SYSTEM_PROMPT.format(
+                        current_time=self.config.current_time,
+                        maximum_iterations=self.config.max_tool_calls
+                    )
+                }
+            )
+
+        if state.current_iteration == 0:
+            state.current_iteration = 1
+            state.messages.append(
+                {
+                    "role": "user",
+                    "content": state.user_request
+                }
+            )
+
+
+
+
+        last_message = state.messages[-1]['content']
+        if isinstance(last_message, str):
+            last_message += "\nMaximum tool calls: {}".format(self.config.max_tool_calls)
+
+        elif isinstance(last_message, list):
+            last_message.append(
+                {
+                    'type': 'text',
+                    'text': "Maximum tool calls: {}".format(self.config.max_tool_calls)
+                }
+            )
+
+        state.messages[-1]['content'] = last_message
+
+        return await super().tool_calling(state)
+
 
     def build_graph(self) -> StateGraph:
 
@@ -18,7 +72,7 @@ class ReActAgent(BaseAgentMCP):
         workflow.set_entry_point("llm")
         workflow.add_conditional_edges(
             "llm",
-            self.is_finished,
+            self.is_tool_calling_finished,
             {
                 'end': 'finalize',
                 'continue': 'tools'
@@ -30,3 +84,19 @@ class ReActAgent(BaseAgentMCP):
         graph = workflow.compile()
 
         return graph
+
+
+    async def ainvoke(self, state: ReActAgentState) -> ReActAgentState:
+        """Asynchronously invoke the agent with the given state"""
+
+        if not self.graph:
+            raise ValueError("Workflow graph is not defined.")
+        
+        # Run the workflow
+        state = await self.graph.ainvoke(state)
+
+        if state is None:
+            raise ValueError("Workflow execution returned None.")
+
+        return ReActAgentState(**state)
+        
