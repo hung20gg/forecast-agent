@@ -1,6 +1,7 @@
 from core.state import AgentState
 
 from typing import List, Dict, Any, Optional
+from dataclasses import dataclass
 
 conduct_research_tool = {
         "type": "function",
@@ -32,6 +33,7 @@ research_complete_tool = {
         },
     }
 
+@dataclass
 class ResearcherState(AgentState):
 
     task_id: Optional[str] = None
@@ -44,7 +46,7 @@ class ResearcherState(AgentState):
             "tool_call_id": self.task_id,
             "content": self.compressed_research or "",
         }
-
+@dataclass
 class DeepResearchState(AgentState):
 
     is_question_clarified: bool = False

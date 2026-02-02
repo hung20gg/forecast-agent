@@ -62,6 +62,7 @@ class ResearcherAgentConfig(BaseAgentMCPConfig):
 class ResearcherAgent(BaseAgentMCP):
     def __init__(self, config: ResearcherAgentConfig) -> None:
         super().__init__(config=config)
+        self.config = config
 
     async def conduct_research(self, state: ResearcherState) -> ResearcherState:
         if len(state.messages) == 0:
@@ -212,7 +213,7 @@ class OpenDeepResearchAgent(BaseAgentMCP):
         ]
 
         response = await self.llm.ainvoke(write_research_messages)
-        research_brief = response.get('content', '')
+        research_brief = response
         state.research_briefs.append(research_brief)
 
         return state
@@ -312,7 +313,7 @@ class OpenDeepResearchAgent(BaseAgentMCP):
 
     def is_question_clarified(self, state: DeepResearchState) -> str:
         
-        if state.claried_counter > self.config.max_clarify_iterations:
+        if state.clarified_counter > self.config.max_clarify_iterations:
             return 'clarified'
 
         if state.is_question_clarified:
