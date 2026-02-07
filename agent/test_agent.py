@@ -73,4 +73,4 @@ async def test_deep_research():
 
 if __name__ == "__main__":
 
-    asyncio.run(test_deep_research())
+    asyncio.run(test_react())

@@ -42,6 +42,33 @@ pub async fn query_financial_ratio(
     end_date: &str,
     duration: &str,
 ) -> String {
+
+    // Check if ratio_code exists
+    let sql = r#"
+        SELECT
+            COUNT(1) AS cnt
+        FROM `neusolution.ktln.financial_ratio_dim`
+        WHERE ratio_code = @ratio_code;
+    "#;
+
+    let params = vec![QueryParameter::string("ratio_code", ratio_code)];
+
+    match client.execute_query(sql, Some(params)).await {
+        Ok(result) => {
+            let cnt: i64 = result.rows.first()
+                .and_then(|row| row.first())
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(0);
+            if cnt == 0 {
+                return format!("Ratio code '{}' does not exist. Please use the tool 'get_exact_financial_ratio_code' to find the correct ratio code.", ratio_code); 
+            } 
+        }
+        Err(e) => {
+            error!("Error searching financial ratio code: {}", e);
+            return format!("Error searching financial ratio code: {}", e);
+        }
+    }
+
     let start_dt = match NaiveDate::parse_from_str(start_date, "%Y-%m-%d") {
         Ok(d) => d,
         Err(e) => return format!("Invalid start_date format: {}", e),
@@ -171,6 +198,34 @@ pub async fn query_financial_statement(
     end_date: &str,
     duration: &str,
 ) -> String {
+
+
+    // Check if category_code exists
+    let sql = r#"
+        SELECT
+            COUNT(1) AS cnt
+        FROM `neusolution.ktln.financial_statement_dim`
+        WHERE category_code = @category_code;
+    "#;
+
+    let params = vec![QueryParameter::string("category_code", category_code)];
+
+    match client.execute_query(sql, Some(params)).await {
+        Ok(result) => {
+            let cnt: i64 = result.rows.first()
+                .and_then(|row| row.first())
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(0);
+            if cnt == 0 {
+                return format!("Category code '{}' does not exist. Please use the tool 'get_exact_financial_statement_account' to find the correct category code.", category_code); 
+            } 
+        }
+        Err(e) => {
+            error!("Error searching financial statement category code: {}", e);
+            return format!("Error searching financial statement category code: {}", e);
+        }
+    }
+
     let start_dt = match NaiveDate::parse_from_str(start_date, "%Y-%m-%d") {
         Ok(d) => d,
         Err(e) => return format!("Invalid start_date format: {}", e),

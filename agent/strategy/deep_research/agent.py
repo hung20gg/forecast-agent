@@ -59,7 +59,7 @@ class ResearcherAgentConfig(BaseAgentMCPConfig):
     researcher_compress_prompt: str = DEFAULT_RESEARCHER_COMPRESS_PROMPT
 
 
-class ResearcherAgent(BaseAgentMCP):
+class ResearcherAgent(BaseAgentMCP[ResearcherState, ResearcherAgentConfig]):
     def __init__(self, config: ResearcherAgentConfig) -> None:
         super().__init__(config=config)
         self.config = config
@@ -119,19 +119,8 @@ class ResearcherAgent(BaseAgentMCP):
         return graph
     
 
-    async def ainvoke(self, state: ResearcherState) -> ResearcherState:
-        if not self.graph:
-            raise ValueError("Workflow graph is not defined.")
-        
-        # Run the workflow
-        state = await self.graph.ainvoke(state)
 
-        if state is None:
-            raise ValueError("Workflow execution returned None.")
-
-        return ResearcherState(**state)
-
-class OpenDeepResearchAgent(BaseAgentMCP):
+class OpenDeepResearchAgent(BaseAgentMCP[OpenDeepResearchState, OpenDeepResearchAgentConfig]):
     def __init__(self,  config : OpenDeepResearchAgentConfig, researcher_agent: Optional[ResearcherAgent] = None) -> None:
         super().__init__(config= config)
         
@@ -395,15 +384,3 @@ class OpenDeepResearchAgent(BaseAgentMCP):
         workflow.add_edge("final_report_generation", END)
         graph = workflow.compile()
         return graph
-
-    async def ainvoke(self, state: OpenDeepResearchState) -> OpenDeepResearchState:
-        if not self.graph:
-            raise ValueError("Workflow graph is not defined.")
-        
-        # Run the workflow
-        state = await self.graph.ainvoke(state)
-
-        if state is None:
-            raise ValueError("Workflow execution returned None.")
-
-        return OpenDeepResearchState(**state)
