@@ -58,7 +58,7 @@ fn get_tools() -> Vec<Tool> {
         // Stock tool
         Tool {
             name: "get_stock_value".to_string(),
-            description: "Fetch stock value from BigQuery for the given stock symbol and date range. Returns daily or monthly data including close price, volume, and EMA indicators.".to_string(),
+            description: "Fetch stock value from BigQuery for the given stock symbol and date range. Returns daily or monthly data including close price, volume, and EMA indicators. stock_code should contain only 3-4 characters.".to_string(),
             input_schema: InputSchema {
                 schema_type: "object".to_string(),
                 properties: HashMap::from([

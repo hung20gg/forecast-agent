@@ -1,6 +1,7 @@
 from core.state import AgentState
 
 from typing import List, Dict, Any, Optional
+from dataclasses import dataclass, field
 
 conduct_research_tool = {
         "type": "function",
@@ -32,6 +33,7 @@ research_complete_tool = {
         },
     }
 
+@dataclass
 class ResearcherState(AgentState):
 
     task_id: Optional[str] = None
@@ -44,17 +46,17 @@ class ResearcherState(AgentState):
             "tool_call_id": self.task_id,
             "content": self.compressed_research or "",
         }
-
-class DeepResearchState(AgentState):
-
+@dataclass
+class OpenDeepResearchState(AgentState):
+    
     is_question_clarified: bool = False
     clarified_counter: int = 0
     is_research_complete: bool = False
-    research_briefs: List[str] = []
+    research_briefs: List[str] = field(default_factory=list)
     research_counter: int = 0
-    raw_messages: List[Dict[str, Any]] = []
-    supervisor_messages: List[Dict[str, Any]] = []
-    research_tasks: List[ResearcherState] = []
+    raw_messages: List[Dict[str, Any]] = field(default_factory=list)
+    supervisor_messages: List[Dict[str, Any]] = field(default_factory=list)
+    research_tasks: List[ResearcherState] = field(default_factory=list)
 
 
     

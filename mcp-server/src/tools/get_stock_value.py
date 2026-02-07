@@ -108,7 +108,7 @@ def register_tool(mcp, client: BigQueryClient):
         Fetch stock value from BigQuery for the given stock symbol and date range.
         
         Args:
-            stock_code: Stock symbol to query
+            stock_code: Stock symbol to query. e.g., 'VIC', 'VHM'
             start_date: Start date in 'YYYY-MM-DD' format
             end_date: End date in 'YYYY-MM-DD' format
             duration: 'daily' or 'monthly' to specify the data frequency

@@ -9,7 +9,7 @@ from typing import Literal, Optional, List, Dict, Any
 
 from core.agent import BaseAgentMCP, BaseAgentMCPConfig
 from .state import (
-    DeepResearchState,
+    OpenDeepResearchState,
     ResearcherState,
     conduct_research_tool,
     research_complete_tool,
@@ -59,9 +59,10 @@ class ResearcherAgentConfig(BaseAgentMCPConfig):
     researcher_compress_prompt: str = DEFAULT_RESEARCHER_COMPRESS_PROMPT
 
 
-class ResearcherAgent(BaseAgentMCP):
+class ResearcherAgent(BaseAgentMCP[ResearcherState, ResearcherAgentConfig]):
     def __init__(self, config: ResearcherAgentConfig) -> None:
         super().__init__(config=config)
+        self.config = config
 
     async def conduct_research(self, state: ResearcherState) -> ResearcherState:
         if len(state.messages) == 0:
@@ -118,20 +119,9 @@ class ResearcherAgent(BaseAgentMCP):
         return graph
     
 
-    async def ainvoke(self, state: ResearcherState) -> ResearcherState:
-        if not self.graph:
-            raise ValueError("Workflow graph is not defined.")
-        
-        # Run the workflow
-        state = await self.graph.ainvoke(state)
 
-        if state is None:
-            raise ValueError("Workflow execution returned None.")
-
-        return ResearcherState(**state)
-
-class OpenDeepResearchAgent(BaseAgentMCP):
-    def __init__(self, researcher_agent: ResearcherAgent, config : OpenDeepResearchAgentConfig):
+class OpenDeepResearchAgent(BaseAgentMCP[OpenDeepResearchState, OpenDeepResearchAgentConfig]):
+    def __init__(self,  config : OpenDeepResearchAgentConfig, researcher_agent: Optional[ResearcherAgent] = None) -> None:
         super().__init__(config= config)
         
         self.config = config
@@ -141,21 +131,32 @@ class OpenDeepResearchAgent(BaseAgentMCP):
             research_complete_tool
         ]
 
-    async def clarify_with_user(self, state: DeepResearchState) -> DeepResearchState:
-        
-        user_request = state.messages[-1]['content']
-        is_question_clarified = False
+    def register_researcher_agent(self, researcher_agent: ResearcherAgent):
+        self.researcher_agent = researcher_agent
 
-        temp_messages = state.messages.copy()[:-1]  # Exclude the last message
-        temp_messages.append({
-            "role": "user",
-            "content": self.config.clarify_prompt.format(user_request=user_request)
-        })
+    async def clarify_with_user(self, state: OpenDeepResearchState) -> OpenDeepResearchState:
+        
+        print("[NODE] Clarify with user")
+        if state.is_question_clarified:
+            return state
+        
+        flatten_conv = flatten_messages(state.messages)
+
+        temp_messages = [
+            {
+                "role": "user",
+                "content": self.config.clarify_prompt.format(
+                    messages=flatten_conv,
+                    current_time=self.config.current_time
+                )
+            }
+        ]
 
         if self.config.streaming:
             stream_writer = get_stream_writer()
             cache_text = ""
             current_text = ""
+            is_question_clarified = False
 
             async for chunk in self.llm.astream(temp_messages):
                 if len(current_text) < 10: 
@@ -165,7 +166,8 @@ class OpenDeepResearchAgent(BaseAgentMCP):
                         state.clarified_counter = 0
                     elif '[YES]' in cache_text:
                         is_question_clarified = False
-                        state.clarified_counter += 1
+                        stream_writer({'type': 'content', 'content': 'Fck, need to clarify more.\n'})
+                        
                 else:
                     # Stream if need to clarify
                     if not is_question_clarified:
@@ -175,24 +177,31 @@ class OpenDeepResearchAgent(BaseAgentMCP):
                         stream_writer({'type': 'content', 'content': chunk})
 
                 current_text += chunk
+            if not is_question_clarified:
+                state.is_question_clarified = False
+                state.clarified_counter += 1
                 
         else:
             response = await self.llm.ainvoke(temp_messages)
             content = response.get('content', '')
 
             if '[YES]' in content:
-                is_question_clarified = True
+                state.is_question_clarified = False
                 state.clarified_counter = 0
             elif '[NO]' in content:
-                is_question_clarified = False
+                state.is_question_clarified = True
                 state.clarified_counter += 1
 
-        state.is_question_clarified = is_question_clarified
+        if not state.is_question_clarified:
+            print("\nUser needs to clarify the question.\n")
+        else:
+            print("\nQuestion is clarified.\n")
+
         return state
                 
 
             
-    async def write_research_brief(self, state: DeepResearchState) -> DeepResearchState:
+    async def write_research_brief(self, state: OpenDeepResearchState) -> OpenDeepResearchState:
     
         if count_messages_words(state.messages) > 5000:
             summarized_messages = summarize_messages(self.llm, flatten_messages(state.messages))
@@ -210,14 +219,20 @@ class OpenDeepResearchAgent(BaseAgentMCP):
                 "content": temp_messages
             }
         ]
-
-        response = await self.llm.ainvoke(write_research_messages)
-        research_brief = response.get('content', '')
+        if self.config.streaming:
+            stream_writer = get_stream_writer()
+            response = ""
+            async for chunk in self.llm.astream(write_research_messages):
+                stream_writer({'type': 'content', 'content': chunk})
+                response += chunk
+        else:
+            response = await self.llm.ainvoke(write_research_messages)
+        research_brief = response
         state.research_briefs.append(research_brief)
 
         return state
 
-    async def supervisor(self, state: DeepResearchState) -> DeepResearchState:
+    async def supervisor(self, state: OpenDeepResearchState) -> OpenDeepResearchState:
         
         if state.research_counter == 0:
             if len(state.supervisor_messages) == 0:
@@ -237,17 +252,22 @@ class OpenDeepResearchAgent(BaseAgentMCP):
                 }
             )
 
-        tool_calling_result = await self._tool_calling(state)
-        state.supervisor_messages.append({
+        tool_calling_result = await self._tool_calling(messages=state.supervisor_messages, tools=self.mcp_client.tools)
+        
+        message = {
             'role': "assistant",
-            "content": tool_calling_result.get("content"),
-            "tool_calls": tool_calling_result.get("tool_calls")
-        })
+            "content": tool_calling_result.get("content")
+        }
+        
+        if tool_calling_result.get("tool_calls"):
+            message["tool_calls"] = tool_calling_result.get("tool_calls")
+        
+        state.supervisor_messages.append(message)
 
         return state
 
     
-    async def supervisor_tool_execute(self, state: DeepResearchState) -> DeepResearchState:
+    async def supervisor_tool_execute(self, state: OpenDeepResearchState) -> OpenDeepResearchState:
         
         recent_supervisor_command = state.supervisor_messages[-1]
         
@@ -285,6 +305,8 @@ class OpenDeepResearchAgent(BaseAgentMCP):
                 )
                 research_task_states.append(research_task_state)
 
+        if self.researcher_agent is None:
+            raise ValueError("Researcher agent is not registered.")
         research_tasks = [
             self.researcher_agent.ainvoke(research_task_state) 
             for research_task_state in research_task_states
@@ -307,19 +329,21 @@ class OpenDeepResearchAgent(BaseAgentMCP):
         return state    
         
 
-    async def final_report_generation(self, state: DeepResearchState) -> DeepResearchState:
+    async def final_report_generation(self, state: OpenDeepResearchState) -> OpenDeepResearchState:
         pass
 
-    def is_question_clarified(self, state: DeepResearchState) -> str:
+    def is_question_clarified(self, state: OpenDeepResearchState) -> str:
         
-        if state.claried_counter > self.config.max_clarify_iterations:
+        print(state)
+
+        if state.clarified_counter > self.config.max_clarify_iterations:
             return 'clarified'
 
         if state.is_question_clarified:
             return 'clarified'
         return 'need_clarification'
     
-    def is_research_complete(self, state: DeepResearchState) -> str:
+    def is_research_complete(self, state: OpenDeepResearchState) -> str:
         
         if state.research_counter > self.config.max_research_iterations:
             return 'complete'
@@ -330,7 +354,7 @@ class OpenDeepResearchAgent(BaseAgentMCP):
     
     def build_graph(self) -> StateGraph:
 
-        workflow = StateGraph(DeepResearchState)
+        workflow = StateGraph(OpenDeepResearchState)
 
         workflow.add_node('clarify_with_user', self.clarify_with_user)
         workflow.add_node('write_research_brief', self.write_research_brief)
@@ -344,7 +368,7 @@ class OpenDeepResearchAgent(BaseAgentMCP):
             self.is_question_clarified,
             {
                 'clarified': 'write_research_brief',
-                'need_clarification': 'clarify_with_user'
+                'need_clarification': END
             }
         )
         workflow.add_edge("write_research_brief", "supervisor")
@@ -360,4 +384,3 @@ class OpenDeepResearchAgent(BaseAgentMCP):
         workflow.add_edge("final_report_generation", END)
         graph = workflow.compile()
         return graph
-

@@ -43,6 +43,27 @@ async def _query_financial_ratio(
     end_date: str,
     duration: str  # "quarter" or "year"
 ):
+    
+    # Check ratio_code exists
+    sql_check = """
+
+        SELECT
+            COUNT(1) AS cnt
+        FROM `neusolution.ktln.financial_ratio_dim`
+        WHERE ratio_code = @ratio_code;
+        
+    """
+    job_config_check = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("ratio_code", "STRING", ratio_code),
+        ]
+    )
+    results_check = await client.aexecute_query(sql_check, job_config=job_config_check)
+    row_check = list(results_check)[0]
+    if row_check['cnt'] == 0:
+        return f"Ratio code '{ratio_code}' does not exist. Please use the tool 'get_exact_financial_ratio_code' to find the correct ratio code."
+    
+    
     start_dt = datetime.fromisoformat(start_date)
     end_dt = datetime.fromisoformat(end_date)
 
@@ -149,6 +170,24 @@ async def _query_financial_statement(
     end_date: str,
     duration: str  # "quarter" or "year"
 ):
+    
+    # Check category_code exists
+    sql_check = """
+        SELECT
+            COUNT(1) AS cnt
+        FROM `neusolution.ktln.financial_statement_dim`
+        WHERE category_code = @category_code;
+    """
+    job_config_check = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("category_code", "STRING", category_code),
+        ]
+    )
+    results_check = await client.aexecute_query(sql_check, job_config=job_config_check)
+    row_check = list(results_check)[0]
+    if row_check['cnt'] == 0:
+        return f"Category code '{category_code}' does not exist. Please use the tool 'get_exact_financial_statement_account' to find the correct category code."
+    
     start_dt = datetime.fromisoformat(start_date)
     end_dt = datetime.fromisoformat(end_date)
 

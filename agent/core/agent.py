@@ -1,15 +1,31 @@
+import os
 from llm import get_llm_wrapper
 from core.mcp_client import MCPClient
 from core.state import AgentState
-
+import wandb
+import weave
+from uuid import uuid4
 from typing import Optional
 from langgraph.graph import StateGraph
 from langgraph.config import get_stream_writer
 import json
-from typing import List, Dict, Any, AsyncIterable, Annotated
+from typing import List, Dict, Any, AsyncIterable, Annotated, TypeVar, Generic
 from pydantic import BaseModel, Field
 from datetime import datetime
+from dotenv import load_dotenv
+import asyncio
+
+
+load_dotenv()
+
+from .logger import logger
+
+WANDB_API_KEY = os.getenv("WANDB_API_KEY")
+WANDB_NAME = os.getenv("WANDB_NAME", "neu-solution/kltn")
+wandb.login(key=WANDB_API_KEY)
+weave.init(WANDB_NAME)
 class BaseAgentMCPConfig(BaseModel):
+    agent_type: str = "base"
     model_name: str
     urls: Optional[List[str]] = None
     streaming: bool = False
@@ -17,15 +33,19 @@ class BaseAgentMCPConfig(BaseModel):
     current_time : Annotated[str, "The current date and time in ISO 8601 format"] = Field(
         default_factory=lambda: datetime.now().isoformat()
     )
+    
+StateT = TypeVar("StateT", bound=AgentState)
+ConfigT = TypeVar("ConfigT", bound=BaseAgentMCPConfig)
 
-class BaseAgentMCP:
-    def __init__(self, config: BaseAgentMCPConfig) -> None:
+class BaseAgentMCP(Generic[StateT, ConfigT]):
+    def __init__(self, config: ConfigT) -> None:
         self.config = config
         self.llm = get_llm_wrapper(config.model_name)
         self.mcp_client = MCPClient(config.urls)
         self._initialized = False
         self.graph = self.build_graph()
         self.streaming = config.streaming
+        self.session_id = str(uuid4())
 
 
         if config.message_saver == 'mongodb':
@@ -35,6 +55,7 @@ class BaseAgentMCP:
         elif config.message_saver == 'postgres':
             from llm.llm_logger.log_postgres import LLMLogPostgres
             self.llm = LLMLogPostgres(llm=self.llm)
+            
 
     async def initialize(self) -> None:
         """Initialize async components"""
@@ -52,34 +73,39 @@ class BaseAgentMCP:
         pass
 
 
-    def is_tool_calling_finished(self, state: AgentState) -> str:
+    def is_tool_calling_finished(self, state: StateT) -> str:
         if len(state.messages[-1].get("tool_calls", [])) == 0:
             return 'end'
         return 'continue'
     
+    async def _single_tool_execute(self, tool_call: Dict[str, Any]) -> Dict[str, Any]:
+        tool_id = tool_call.get("id")
+        function = tool_call.get("function", {})
+        function_name = function.get("name")
+        logger.info(f"[FUNCTION]: {function_name} {function.get('arguments')}")
+        arguments = json.loads(function.get("arguments"))
+
+        tool_result = await self.mcp_client.call_tool(function_name, arguments)
+
+        logger.info(f"[TOOL RESULT]: {json.dumps(tool_result.content[0].text)}")
+        
+        return {
+            "role": "tool",
+            "tool_call_id": tool_id,
+            "content": json.dumps(tool_result.content[0].text)
+        }
+    
     async def _tool_execute(self, tool_calls: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         tool_responses = []
-        for tool_response in tool_calls:
-            tool_id = tool_response.get("id")
-            function = tool_response.get("function")
-            function_name = function.get("name")
-            print("[FUNCTION]:", function_name, function.get("arguments"))
-            arguments = json.loads(function.get("arguments"))
-
-            tool_result = await self.mcp_client.call_tool(function_name, arguments)
-
-            print("[TOOL RESULT]:", json.dumps(tool_result.content[0].text))
-            
-            tool_responses.append({
-                "role": "tool",
-                "tool_call_id": tool_id,
-                "content": json.dumps(tool_result.content[0].text)
-            })
+        tool_responses = await asyncio.gather(*[
+            self._single_tool_execute(tool_call) for tool_call in tool_calls
+        ])
 
         return tool_responses
 
 
-    async def tool_execute(self, state: AgentState) -> AgentState:
+    @weave.op(call_display_name="Tool Execute")
+    async def tool_execute(self, state: StateT) -> StateT:
 
         tool_messages = await self._tool_execute(state.messages[-1].get("tool_calls", []))
         state.messages.extend(tool_messages)
@@ -88,15 +114,18 @@ class BaseAgentMCP:
 
     async def _tool_calling(self, messages: List[Dict[str, Any]], tools: List[Dict[str, Any]]) -> Dict[str, Any]:
 
+        content = ""
+        tool_calls = []
+        
         if not self.streaming:
             tool_responses = await self.llm.tool_calling_async(messages=messages, tools = tools)
-            content = tool_responses.get('content')
-            tool_calls = tool_responses.get('tool_calls')
+            if isinstance(tool_responses, dict):
+                content = tool_responses.get('content')
+                tool_calls = tool_responses.get('tool_calls')
         else:
             # Get stream writer inside the graph execution context
             stream_writer = get_stream_writer()
-            content = ""
-            tool_calls = []
+            
 
 
             async for chunk in self.llm.stream_tool_calling_async(messages, tools = tools):
@@ -114,7 +143,8 @@ class BaseAgentMCP:
         }
 
 
-    async def tool_calling(self, state: AgentState) -> AgentState:
+    @weave.op(call_display_name="Tool Calling")
+    async def tool_calling(self, state: StateT) -> StateT:
 
         tool_calling_result = await self._tool_calling(messages=state.messages, tools=self.mcp_client.tools)
         state.messages.append({
@@ -126,7 +156,8 @@ class BaseAgentMCP:
         return state
     
 
-    async def finalize(self, state: AgentState) -> AgentState:
+    @weave.op(call_display_name="Finalize Agent State")
+    async def finalize(self, state: StateT) -> StateT:
         if self.streaming:
             stream_writer = get_stream_writer()
             stream_writer({'type': 'state', 'state': state})
@@ -137,25 +168,31 @@ class BaseAgentMCP:
         return None
 
     
-    async def ainvoke(self, state: AgentState) -> AgentState:
+    async def ainvoke(self, state: StateT) -> StateT:
 
         if not self.graph:
             raise ValueError("Workflow graph is not defined.")
         
         # Run the workflow
-        state = await self.graph.ainvoke(state)
-        if state is None:
-            raise ValueError("Workflow execution returned None.")
+        with weave.thread(self.session_id) as thread_ctx:
+            
+            logger.info(f"Starting agent invocation with thread ID: {self.session_id}")
+            result  = await self.graph.ainvoke(state)
+            if result is None:
+                raise ValueError("Workflow execution returned None.")
 
-        return AgentState(**state)
+        return type(state)(**result)
 
 
-    async def stream(self, state: AgentState, stream_mode="custom") -> AsyncIterable[Dict[str, Any]]:
+    async def stream(self, state: StateT, stream_mode="custom") -> AsyncIterable[Dict[str, Any]]:
         
         if not self.graph:
             raise ValueError("Workflow graph is not defined.")
-        
-        async for chunk in self.graph.astream(state, stream_mode=stream_mode):
-            yield chunk
+       
+        with weave.thread(self.session_id) as thread_ctx:
+            logger.info(f"Starting agent invocation with thread ID: {self.session_id}")
+            
+            async for chunk in self.graph.astream(state, stream_mode=stream_mode):
+                yield chunk
         
 
