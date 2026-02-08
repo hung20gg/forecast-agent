@@ -28,7 +28,51 @@ def count_messages_words(messages: List[Dict[str, Any]]) -> int:
 
 
 def flatten_messages(messages: List[Dict[str, Any]]) -> str:
-    return "\n".join([f"## {msg['role'].capitalize()}: \n\n{msg['content']}\n\n" for msg in messages]).strip()
+    """Flatten messages including tool calls and responses into a readable format."""
+    flattened_parts = []
+    
+    for msg in messages:
+        role = msg.get('role', 'unknown').capitalize()
+        content = msg.get('content')
+        
+        # Handle content (can be string, list, or None)
+        if content is not None:
+            if isinstance(content, str):
+                text_content = content
+            elif isinstance(content, list):
+                # Extract text from content list (handles [{"type": "text", "text": "..."}])
+                text_parts = []
+                for item in content:
+                    if isinstance(item, dict) and item.get('type') == 'text':
+                        text_parts.append(item.get('text', ''))
+                text_content = '\n'.join(text_parts)
+            else:
+                text_content = str(content)
+            
+            flattened_parts.append(f"## {role}:\n\n{text_content}\n")
+        
+        # Handle tool calls (for assistant messages)
+        tool_calls = msg.get('tool_calls', [])
+        if tool_calls:
+            if not content:  # Only add header if content wasn't already added
+                flattened_parts.append(f"## {role}:\n")
+            
+            flattened_parts.append("### Tool Calls:\n")
+            for tool_call in tool_calls:
+                tool_id = tool_call.get('id', 'unknown')
+                function = tool_call.get('function', {})
+                function_name = function.get('name', 'unknown')
+                arguments = function.get('arguments', '{}')
+                
+                flattened_parts.append(f"- **{function_name}** (ID: {tool_id})\n  Arguments: {arguments}\n")
+            flattened_parts.append("\n")
+        
+        # Handle tool call ID (for tool response messages)
+        if msg.get('tool_call_id'):
+            tool_id = msg.get('tool_call_id')
+            flattened_parts[-1] = flattened_parts[-1].rstrip() + f" (Response to: {tool_id})\n\n"
+    
+    return "\n".join(flattened_parts).strip()
 
 
 def summarize_messages(llm: LLM, messages: List[Dict[str, Any]]) -> str:

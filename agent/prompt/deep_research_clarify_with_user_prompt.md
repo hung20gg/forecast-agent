@@ -26,7 +26,7 @@ If you need to ask a question, follow these guidelines:
 - Ask only what is required to perform correct financial analysis or forecasting
 - Use bullet points or numbered lists if helpful
 - Use proper markdown formatting
-
+- Do not ask user to provide information you should research yourself
 
 ## Output Format
 First, you need to return either [YES] or [NO] to indicate whether you need to ask a clarifying question.

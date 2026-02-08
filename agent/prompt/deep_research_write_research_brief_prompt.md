@@ -6,7 +6,7 @@ The messages that have been exchanged so far between yourself and the user are:
 {messages}
 </Messages>
 
-Today's date is {date}.
+Today's date is {current_time}.
 
 You will return a single research question that will be used to guide the research.
 

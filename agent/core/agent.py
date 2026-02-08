@@ -167,7 +167,7 @@ class BaseAgentMCP(Generic[StateT, ConfigT]):
     def build_graph(self) -> Optional[StateGraph]:
         return None
 
-    
+    @weave.op(call_display_name="Invoke Agent")
     async def ainvoke(self, state: StateT) -> StateT:
 
         if not self.graph:
@@ -183,7 +183,7 @@ class BaseAgentMCP(Generic[StateT, ConfigT]):
 
         return type(state)(**result)
 
-
+    @weave.op(call_display_name="Stream Agent")
     async def stream(self, state: StateT, stream_mode="custom") -> AsyncIterable[Dict[str, Any]]:
         
         if not self.graph:

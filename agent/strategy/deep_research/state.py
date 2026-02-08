@@ -29,6 +29,11 @@ research_complete_tool = {
         "function": {
             "name": "research_complete_tool",
             "description": "Flag to indicate that research is complete.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": False,
+            },
             "strict": True,
         },
     }
@@ -54,6 +59,7 @@ class OpenDeepResearchState(AgentState):
     is_research_complete: bool = False
     research_briefs: List[str] = field(default_factory=list)
     research_counter: int = 0
+    supervisor_counter: int = 0
     raw_messages: List[Dict[str, Any]] = field(default_factory=list)
     supervisor_messages: List[Dict[str, Any]] = field(default_factory=list)
     research_tasks: List[ResearcherState] = field(default_factory=list)
