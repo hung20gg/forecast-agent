@@ -101,6 +101,7 @@ def create_table_if_not_exists():
         bigquery.SchemaField("updated_at", "TIMESTAMP", mode="REQUIRED"),
         bigquery.SchemaField("text", "STRING", mode="NULLABLE"),
         bigquery.SchemaField("summarize", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("vectorized", "BOOL", mode="NULLABLE"),
     ]
     
     # Create table if it doesn't exist

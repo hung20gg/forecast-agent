@@ -4,3 +4,4 @@ python-dotenv
 google-cloud-bigquery
 pandas
 tabulate
+qdrant_client

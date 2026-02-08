@@ -10,3 +10,5 @@ setuptools
 pandas_datareader
 wbgapi
 openpyxl
+qdrant_client
+google-cloud-storage

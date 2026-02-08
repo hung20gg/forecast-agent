@@ -34,10 +34,16 @@ COPY --from=builder --chown=appuser:appuser /root/.local /home/appuser/.local
 # Copy application code
 COPY --chown=appuser:appuser . .
 
+# Copy entrypoint script
+COPY --chown=appuser:appuser docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh
+
 # Update PATH for user-installed packages
 ENV PATH=/home/appuser/.local/bin:$PATH
 # Disable Python output buffering for real-time logs
 ENV PYTHONUNBUFFERED=1
+# Environment variable to control vectordb setup
+ENV SETUP_VECTORDB_ON_START=false
 
 # Switch to non-root user
 USER appuser
@@ -46,5 +52,6 @@ USER appuser
 HEALTHCHECK --interval=10s --timeout=5s --start-period=10s --retries=5 \
     CMD python -c "import socket; s=socket.socket(); s.connect(('localhost', 9003)); s.close()"
 
-# Run the server
-CMD ["python", "src/server.py", "--transport", "sse", "--host", "0.0.0.0", "--port", "9003"]
+# Run the entrypoint script
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
+CMD ["--transport", "sse", "--host", "0.0.0.0", "--port", "9003"]

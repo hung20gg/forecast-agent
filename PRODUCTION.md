@@ -200,3 +200,9 @@ docker-compose -f docker-compose.prod.yml exec backend ping mcp-server
 - [ ] Auto-renewal for SSL
 - [ ] Rate limiting configured
 - [ ] CORS settings reviewed
+
+
+model=google/embeddinggemma-300m
+volume=$PWD/data 
+
+docker run --gpus all -p 8080:80 -v $volume:/data --pull always ghcr.io/huggingface/text-embeddings-inference:1.8 --model-id $model
