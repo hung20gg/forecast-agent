@@ -175,11 +175,11 @@ class BaseAgentMCP(Generic[StateT, ConfigT]):
         
         # Run the workflow
         with weave.thread(self.session_id) as thread_ctx:
-            
-            logger.info(f"Starting agent invocation with thread ID: {self.session_id}")
-            result  = await self.graph.ainvoke(state)
-            if result is None:
-                raise ValueError("Workflow execution returned None.")
+            with weave.attributes({'type': 'non-stream', 'Agent': self.config.agent_type}):
+                logger.info(f"Starting agent invocation with thread ID: {self.session_id}")
+                result  = await self.graph.ainvoke(state)
+                if result is None:
+                    raise ValueError("Workflow execution returned None.")
 
         return type(state)(**result)
 
@@ -190,9 +190,10 @@ class BaseAgentMCP(Generic[StateT, ConfigT]):
             raise ValueError("Workflow graph is not defined.")
        
         with weave.thread(self.session_id) as thread_ctx:
-            logger.info(f"Starting agent invocation with thread ID: {self.session_id}")
-            
-            async for chunk in self.graph.astream(state, stream_mode=stream_mode):
-                yield chunk
+            with weave.attributes({'type': 'stream', 'Agent': self.config.agent_type}):
+                logger.info(f"Starting agent invocation with thread ID: {self.session_id}")
+                
+                async for chunk in self.graph.astream(state, stream_mode=stream_mode):
+                    yield chunk
         
 

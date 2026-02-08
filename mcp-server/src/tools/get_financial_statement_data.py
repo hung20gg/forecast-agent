@@ -29,7 +29,7 @@ async def _get_exact_financial_ratio_code(
     results = await client.aexecute_query(sql, job_config=job_config)
     df = pd.DataFrame([dict(row) for row in results])
     if df.empty:
-        return "No data found for the given parameters."
+        return "No ratio found for the given parameters."
     
     return df.to_markdown(index=False)
 
@@ -61,7 +61,10 @@ async def _query_financial_ratio(
     results_check = await client.aexecute_query(sql_check, job_config=job_config_check)
     row_check = list(results_check)[0]
     if row_check['cnt'] == 0:
-        return f"Ratio code '{ratio_code}' does not exist. Please use the tool 'get_exact_financial_ratio_code' to find the correct ratio code."
+        similarity_result = await _get_exact_financial_ratio_code(client, ratio_code)
+        if "[FAILED]" in similarity_result:
+            return f"Ratio code '{ratio_code}' or similar names do not exist. Please change your query and use the tool 'get_exact_financial_ratio_code' to find the correct ratio code."
+        return f"Ratio code '{ratio_code}' does not exist. Here are some similar ratio codes or names that available:\n{similarity_result}"
     
     
     start_dt = datetime.fromisoformat(start_date)
@@ -125,7 +128,7 @@ async def _query_financial_ratio(
     results = await client.aexecute_query(sql, job_config=job_config)
     df = pd.DataFrame([dict(row) for row in results])
     if df.empty:
-        return "No data found for the given parameters."
+        return "[FAILED] No data found for the given parameters."
     
     return df.to_markdown(index=False)
 
@@ -157,7 +160,7 @@ async def _get_exact_financial_statement_account(
     results = await client.aexecute_query(sql, job_config=job_config)
     df = pd.DataFrame([dict(row) for row in results])
     if df.empty:
-        return "No data found for the given parameters."
+        return "[FAILED] No category found for the given parameters."
     
     return df.to_markdown(index=False)
 
@@ -186,7 +189,10 @@ async def _query_financial_statement(
     results_check = await client.aexecute_query(sql_check, job_config=job_config_check)
     row_check = list(results_check)[0]
     if row_check['cnt'] == 0:
-        return f"Category code '{category_code}' does not exist. Please use the tool 'get_exact_financial_statement_account' to find the correct category code."
+        similarity_result = await _get_exact_financial_statement_account(client, category_code)
+        if "[FAILED]" in similarity_result:
+            return f"[FAILED] Category code '{category_code}' or similar names do not exist. Please change your query and use the tool 'get_exact_financial_statement_account' to find the correct category code."
+        return f"[FAILED] Category code '{category_code}' does not exist. Here are some similar ratio codes or names that available:\n{similarity_result}"
     
     start_dt = datetime.fromisoformat(start_date)
     end_dt = datetime.fromisoformat(end_date)
@@ -249,7 +255,7 @@ async def _query_financial_statement(
     results = await client.aexecute_query(sql, job_config=job_config)
     df = pd.DataFrame([dict(row) for row in results])
     if df.empty:
-        return "No data found for the given parameters."
+        return "[FAILED] No data found for the given parameters."
     
     return df.to_markdown(index=False)
 

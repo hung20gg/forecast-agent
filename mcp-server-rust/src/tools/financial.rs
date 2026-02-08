@@ -21,7 +21,7 @@ pub async fn get_exact_financial_ratio_code(client: &BigQueryClient, query: &str
     match client.execute_query(sql, Some(params)).await {
         Ok(result) => {
             if result.is_empty() {
-                "No data found for the given parameters.".to_string()
+                "[FAILED] No ratio found for the given parameters.".to_string()
             } else {
                 result.to_markdown()
             }
@@ -60,7 +60,11 @@ pub async fn query_financial_ratio(
                 .and_then(|v| v.parse().ok())
                 .unwrap_or(0);
             if cnt == 0 {
-                return format!("Ratio code '{}' does not exist. Please use the tool 'get_exact_financial_ratio_code' to find the correct ratio code.", ratio_code); 
+                let similarity_result = get_exact_financial_ratio_code(client, ratio_code).await;
+                if similarity_result.contains("[FAILED]") {
+                    return format!("Ratio code '{}' or similar names do not exist. Please change your query and use the tool 'get_exact_financial_ratio_code' to find the correct ratio code.", ratio_code);
+                }
+                return format!("Ratio code '{}' does not exist. Here are some similar ratio codes or names that available:\n{}", ratio_code, similarity_result); 
             } 
         }
         Err(e) => {
@@ -177,7 +181,7 @@ pub async fn get_exact_financial_statement_account(client: &BigQueryClient, quer
     match client.execute_query(sql, Some(params)).await {
         Ok(result) => {
             if result.is_empty() {
-                "No data found for the given parameters.".to_string()
+                "[FAILED] No category found for the given parameters.".to_string()
             } else {
                 result.to_markdown()
             }
@@ -217,7 +221,11 @@ pub async fn query_financial_statement(
                 .and_then(|v| v.parse().ok())
                 .unwrap_or(0);
             if cnt == 0 {
-                return format!("Category code '{}' does not exist. Please use the tool 'get_exact_financial_statement_account' to find the correct category code.", category_code); 
+                let similarity_result = get_exact_financial_statement_account(client, category_code).await;
+                if similarity_result.contains("[FAILED]") {
+                    return format!("Category code '{}' or similar names do not exist. Please change your query and use the tool 'get_exact_financial_statement_account' to find the correct category code.", category_code);
+                }
+                return format!("Category code '{}' does not exist. Here are some similar ratio codes or names that available:\n{}", category_code, similarity_result); 
             } 
         }
         Err(e) => {

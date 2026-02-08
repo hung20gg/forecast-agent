@@ -45,31 +45,15 @@ class ReActAgent(BaseAgentMCP[ReActAgentState, ReActAgentConfig]):
             )
 
         if state.current_iteration == 0:
-            state.current_iteration += 1
+            
             state.messages.append(
                 {
                     "role": "user",
-                    "content": state.user_request
+                    "content": state.user_request + "\nMaximum tool calls: {}".format(self.config.max_tool_calls)
                 }
             )
 
-
-
-
-        last_message = state.messages[-1]['content']
-        if isinstance(last_message, str):
-            last_message += "\nMaximum tool calls: {}".format(self.config.max_tool_calls)
-
-        elif isinstance(last_message, list):
-            last_message.append(
-                {
-                    'type': 'text',
-                    'text': "Maximum tool calls: {}".format(self.config.max_tool_calls)
-                }
-            )
-
-        state.messages[-1]['content'] = last_message
-
+        state.current_iteration += 1
         return await super().tool_calling(state)
 
     @weave.op(call_display_name="Finalize React Agent State")
