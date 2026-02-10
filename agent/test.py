@@ -59,48 +59,48 @@ async def main():
         print("Converted tools to OpenAI format:")
         print(json.dumps(openai_tools, indent=2))
         # Execute operations
-        result = await client.call_tool("get_exact_financial_statement_account", {"query": "(Bank) Revenue after tax"})
+        result = await client.call_tool("query_relevant_news", {"query": "VIC", "start_date": "2025-01-01", "end_date": "2025-06-01"})
         print("Tool call result:")
         print(result.content[0].text)
         
-        messages = [
-            {
-                "role": "user",
-                "content": "Tin tức từ VIC từ 1/1/2024 đến 1/6/2024"
-            }
-        ]
+        # messages = [
+        #     {
+        #         "role": "user",
+        #         "content": "Tin tức từ VIC từ 1/1/2024 đến 1/6/2024"
+        #     }
+        # ]
 
-        # for msg in llm.stream_tool_calling(messages, tools=openai_tools):
-        #     print('[STREAM]', msg, end='', flush=True)
+        # # for msg in llm.stream_tool_calling(messages, tools=openai_tools):
+        # #     print('[STREAM]', msg, end='', flush=True)
         
 
-        tool_responses = llm.tool_calling(messages, tools=openai_tools)
+        # tool_responses = llm.tool_calling(messages, tools=openai_tools)
         
-        messages.append({
-            "role": "assistant",
-            "tool_calls": tool_responses['tool_calls'],
-            "content": tool_responses['content']
-        })
+        # messages.append({
+        #     "role": "assistant",
+        #     "tool_calls": tool_responses['tool_calls'],
+        #     "content": tool_responses['content']
+        # })
         
-        print(tool_responses)
-        for tool_response in tool_responses['tool_calls']:
-            print(tool_response)
-            tool_id = tool_response.get("id")
-            function = tool_response.get("function")
-            function_name = function.get("name")
-            arguments = json.loads(function.get("arguments"))            
-            tool_result = await client.call_tool(function_name, arguments)
+        # print(tool_responses)
+        # for tool_response in tool_responses['tool_calls']:
+        #     print(tool_response)
+        #     tool_id = tool_response.get("id")
+        #     function = tool_response.get("function")
+        #     function_name = function.get("name")
+        #     arguments = json.loads(function.get("arguments"))            
+        #     tool_result = await client.call_tool(function_name, arguments)
             
-            messages.append({
-                "role": "tool",
-                "tool_call_id": tool_id,
-                "content": json.dumps(tool_result.content[0].text)
-            })
+        #     messages.append({
+        #         "role": "tool",
+        #         "tool_call_id": tool_id,
+        #         "content": json.dumps(tool_result.content[0].text)
+        #     })
             
-        response = llm(messages)
+        # response = llm(messages)
         
-        print("Final LLM response:")
-        print(response)
+        # print("Final LLM response:")
+        # print(response)
             
         
         # print(tool_responses)

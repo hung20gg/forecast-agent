@@ -17,7 +17,7 @@ async def test_react():
     }
 
     state = get_agent_state(**agent_state_config)
-    state.user_request = "Dựa vào các công cụ sẵn có, dự đoán doanh thu quý 4 năm 2025 của VINGROUP. Bạn mới chỉ có dữ liệu quý 3 thôi. Hãy đưa ra dự đoán"
+    state.user_request = "Tổng hợp các thông tin mới nhất về Vingroup trong năm 2025"
 
     agent_config = get_agent_config(**agent_config)
 
@@ -116,4 +116,4 @@ async def test_deep_research():
 
 if __name__ == "__main__":
 
-    asyncio.run(test_researcher())
+    asyncio.run(test_react())

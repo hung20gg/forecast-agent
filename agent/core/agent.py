@@ -86,13 +86,21 @@ class BaseAgentMCP(Generic[StateT, ConfigT]):
         arguments = json.loads(function.get("arguments"))
 
         tool_result = await self.mcp_client.call_tool(function_name, arguments)
+        
+        #post-process tool result
+        response = tool_result.content[0].text
+        if response.startswith('{') or response.startswith('['):
+            try:
+                response = json.loads(response)
+            except json.JSONDecodeError:
+                pass  # Keep original text if JSON parsing fails
 
-        logger.info(f"[TOOL RESULT]: {json.dumps(tool_result.content[0].text)}")
+        logger.info(f"[TOOL RESULT]: {json.dumps(response, ensure_ascii=False)}")
         
         return {
             "role": "tool",
             "tool_call_id": tool_id,
-            "content": json.dumps(tool_result.content[0].text)
+            "content": json.dumps(response, ensure_ascii=False)
         }
     
     async def _tool_execute(self, tool_calls: List[Dict[str, Any]]) -> List[Dict[str, Any]]:

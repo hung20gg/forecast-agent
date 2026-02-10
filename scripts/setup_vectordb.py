@@ -7,32 +7,42 @@ import os
 import sys
 from google.cloud import storage
 from qdrant_client import QdrantClient
-from env_config import load_env_config, get_env
-
+from dotenv import load_dotenv
 # Load environment configuration
-load_env_config()
+load_dotenv()
 
 def setup_vectordb():
     """
     Download snapshot from GCS and restore to Qdrant.
     Overwrites existing collection if it exists.
     """
-    QDRANT_HOST = get_env('QDRANT_HOST', 'http://127.0.0.1:6333')
-    GCS_BUCKET_NAME = get_env('GCS_BUCKET_NAME', 'news_embedding')
-    COLLECTION_NAME = get_env('COLLECTION_NAME', 'news_embedding')
+    if os.getenv("ALLOW_VECTORDB_RESET", "false").lower() != "true":
+        print("Refusing to reset vector DB. Set ALLOW_VECTORDB_RESET=true to proceed.")
+        return False
+    QDRANT_URL = os.getenv('QDRANT_URL', 'http://qdrant:6333')
+    GCS_BUCKET_NAME = os.getenv('GCS_BUCKET_NAME', 'news_embedding')
+    COLLECTION_NAME = os.getenv('COLLECTION_NAME', 'news_embedding')
+    
+    
     
     # Get credentials path
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    credentials_path = os.path.join(current_dir, "..", "keys", "bigquery.json")
+    credentials_path = str(os.getenv('GCS_CREDENTIALS_PATH'))
+    
+    # Verify credentials file exists
+    if not os.path.isfile(credentials_path):
+        raise FileNotFoundError(
+            f"GCS credentials not found at {credentials_path}"
+        )
     
     print("\n=== Setting up Vector Database ===")
-    print(f"   Qdrant Host: {QDRANT_HOST}")
+    print(f"   Qdrant Host: {QDRANT_URL}")
     print(f"   GCS Bucket: {GCS_BUCKET_NAME}")
     print(f"   Collection: {COLLECTION_NAME}")
     
     try:
         # Initialize clients
-        qdrant_client = QdrantClient(url=QDRANT_HOST)
+        qdrant_client = QdrantClient(url=QDRANT_URL)
         storage_client = storage.Client.from_service_account_json(credentials_path)
         
         # 1. Download latest snapshot from GCS
@@ -52,7 +62,7 @@ def setup_vectordb():
         # Download to temp directory
         temp_dir = '/tmp/qdrant_restore'
         os.makedirs(temp_dir, exist_ok=True)
-        local_snapshot = os.path.join(temp_dir, os.path.basename(latest_blob.name))
+        local_snapshot = os.path.join(temp_dir, os.path.basename(latest_blob.name)).replace('\\', '/')
         
         latest_blob.download_to_filename(local_snapshot)
         file_size_mb = os.path.getsize(local_snapshot) / (1024 * 1024)
@@ -67,14 +77,15 @@ def setup_vectordb():
         except Exception as e:
             print(f"⚠️  Warning during collection deletion: {e}")
         
-        # 3. Restore snapshot to Qdrant using file URI
-        print(f"\n📤 Restoring snapshot to Qdrant...")
+        # 3. Restore snapshot to Qdrant by uploading the file via HTTP
+        print(f"\n📤 Uploading snapshot to Qdrant...")
         
-        snapshot_uri = f"file://{local_snapshot}"
-        qdrant_client.recover_snapshot(
-            collection_name=COLLECTION_NAME,
-            location=snapshot_uri
-        )
+        import requests
+        with open(local_snapshot, 'rb') as f:
+            url = f"{QDRANT_URL}/collections/{COLLECTION_NAME}/snapshots/upload"
+            resp = requests.post(url, files={"snapshot": f})
+            if resp.status_code != 200:
+                raise Exception(f"Snapshot upload failed: {resp.status_code} - {resp.text}")
         
         print(f"\n✅ Vector database setup complete!")
         print(f"   Collection: {COLLECTION_NAME}")
@@ -83,6 +94,19 @@ def setup_vectordb():
         # Cleanup
         os.remove(local_snapshot)
         print(f"   🧹 Cleaned up temporary files")
+        
+        # 4. Create index on pub_date field
+        print(f"\n🔍 Creating index on pub_date field...")
+        index_url = f"{QDRANT_URL}/collections/{COLLECTION_NAME}/index"
+        index_payload = {
+            "field_name": "pub_date",
+            "field_schema": "integer"
+        }
+        index_resp = requests.put(index_url, json=index_payload)
+        if index_resp.status_code not in [200, 201]:
+            print(f"⚠️  Warning: Index creation returned {index_resp.status_code} - {index_resp.text}")
+        else:
+            print(f"   ✅ Index created on pub_date")
         
         return True
         

@@ -1,5 +1,5 @@
 import os
-from client import BigQueryClient
+from client import Client
 from google.cloud import bigquery
 from logger import logger
 import pandas as pd
@@ -8,7 +8,7 @@ from datetime import datetime
 
 
 async def _get_exact_financial_ratio_code(
-    client: BigQueryClient,
+    client: Client,
     query: str,
 ) -> str:
         
@@ -36,7 +36,7 @@ async def _get_exact_financial_ratio_code(
 
 
 async def _query_financial_ratio(
-    client: BigQueryClient,
+    client: Client,
     stock_code: str,
     ratio_code: str,
     start_date: str,
@@ -134,7 +134,7 @@ async def _query_financial_ratio(
 
 
 async def _get_exact_financial_statement_account(
-    client: BigQueryClient,
+    client: Client,
     query: str,
 ) -> str:
         
@@ -166,7 +166,7 @@ async def _get_exact_financial_statement_account(
 
 
 async def _query_financial_statement(
-    client: BigQueryClient,
+    client: Client,
     stock_code: str,
     category_code: str,
     start_date: str,
@@ -261,7 +261,7 @@ async def _query_financial_statement(
 
 
 
-def register_tool(mcp, client: BigQueryClient):
+def register_tool(mcp, client: Client):
     @mcp.tool()
     
     async def get_exact_financial_ratio_code(query: str) -> str:

@@ -12,7 +12,7 @@ import hashlib
 KEY_PATH = os.path.join(os.path.dirname(__file__), '../keys/big-query.json')
 
 # Update these with your project and dataset
-EMBEDDING_URL = 'http://127.0.0.1:8080/embed'
+EMBEDDING_URL = 'http://127.0.0.1:8081/embed'
 QDRANT_HOST = 'http://127.0.0.1:6333'
 PROJECT_ID = 'neusolution'
 DATASET_ID = 'ktln'
@@ -54,13 +54,13 @@ query_tpl = """
     ORDER BY pub_date
     LIMIT {limit}
 """
-BATCH_SIZE = 1
-EMBEDDING_BATCH_SIZE = 1
+BATCH_SIZE = 1000
+EMBEDDING_BATCH_SIZE = 32
 
 
-def split_text_into_chunks(text: str, chunk_size: int = 1024) -> list[str]:
+def split_text_into_chunks(text: str, chunk_size: int = 3076) -> list[str]:
     """
-    Split text into chunks of specified word count with 1 sentence overlap.
+    Split text into chunks of specified character count with 1 sentence overlap.
     """
     import re
     
@@ -69,24 +69,24 @@ def split_text_into_chunks(text: str, chunk_size: int = 1024) -> list[str]:
     
     chunks = []
     current_chunk = []
-    current_word_count = 0
+    current_char_count = 0
     overlap_sentence = None
     
     for sentence in sentences:
-        sentence_words = len(sentence.split())
+        sentence_length = len(sentence)
         
         # If adding this sentence would exceed chunk size, save current chunk
-        if current_word_count + sentence_words > chunk_size and current_chunk:
+        if current_char_count + sentence_length > chunk_size and current_chunk:
             # Save the chunk
             chunks.append(' '.join(current_chunk))
             
             # Start new chunk with last sentence as overlap
             overlap_sentence = current_chunk[-1]
             current_chunk = [overlap_sentence, sentence]
-            current_word_count = len(overlap_sentence.split()) + sentence_words
+            current_char_count = len(overlap_sentence) + sentence_length + 1  # +1 for space
         else:
             current_chunk.append(sentence)
-            current_word_count += sentence_words
+            current_char_count += sentence_length + (1 if current_chunk else 0)  # +1 for space between sentences
     
     # Add the last chunk if it exists
     if current_chunk:
@@ -109,7 +109,7 @@ def get_embedding(query: Union[str, list[str]]) -> list[float]:
 
     response = requests.post(
         EMBEDDING_URL,
-        json={"inputs": query},
+        json={"inputs": query, "truncate": True},
         headers={"Content-Type": "application/json"}
     )
     response.raise_for_status()
@@ -130,8 +130,14 @@ while True:
     all_chunks = []
     
     for r in rows:
-        chunks = split_text_into_chunks(r.text, chunk_size=1024)
+        if not r.text or not r.text.strip():
+            continue
+        chunks = split_text_into_chunks(r.text, chunk_size=3076)
         for chunk_idx, chunk in enumerate(chunks):
+            # Skip empty chunks
+            if not chunk or not chunk.strip():
+                continue
+                
             # Generate UUID from URL and chunk index for Qdrant
             chunk_identifier = f"{r.url}#chunk{chunk_idx}"
             # Create a deterministic UUID using MD5 hash

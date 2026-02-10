@@ -1,12 +1,12 @@
 import os
-from client import BigQueryClient
+from client import Client
 from logger import logger
 import pandas as pd
 import anyio
 
 
 async def query_indices_value_daily(
-    client: BigQueryClient,
+    client: Client,
     index_name: str,
     start_date: str,
     end_date: str
@@ -30,7 +30,7 @@ async def query_indices_value_daily(
             time ASC
     """
     try:
-        results = await client.aexecute_query(query)
+        results = await client.bigquery_client.aexecute_query(query)
         df = pd.DataFrame([dict(row) for row in results])
         if df.empty:
             return "No data found for the given parameters."
@@ -42,7 +42,7 @@ async def query_indices_value_daily(
 
 
 async def query_indices_value_monthly(
-    client: BigQueryClient,
+    client: Client,
     index_name: str,
     start_date: str,
     end_date: str
@@ -66,7 +66,7 @@ async def query_indices_value_monthly(
             time ASC
     """
     try:
-        results = await client.aexecute_query(query)
+        results = await client.bigquery_client.aexecute_query(query)
         df = pd.DataFrame([dict(row) for row in results])
         if df.empty:
             return "No data found for the given parameters."
@@ -77,12 +77,13 @@ async def query_indices_value_monthly(
         return f"Error querying stock value: {e}"
 
 
-def register_tool(mcp, client: BigQueryClient):
+def register_tool(mcp, client: Client):
     @mcp.tool()
     
     async def get_indices_value(index_name: str, start_date: str, end_date: str, duration: str) -> str:
         """
         Fetch indices value from BigQuery for the given index name and date range.
+        Index is the name for stock indices like 'KOSPI', 'NASDAQ', 'VNINDEX', etc.
         
         Args:
             index_name: Index name to query

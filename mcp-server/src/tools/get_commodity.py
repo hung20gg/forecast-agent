@@ -1,12 +1,12 @@
 import os
-from client import BigQueryClient
+from client import Client
 from logger import logger
 import pandas as pd
 import anyio
 
 
 async def query_commodities_value_daily(
-    client: BigQueryClient,
+    client: Client,
     commodity_code: str,
     start_date: str,
     end_date: str
@@ -39,7 +39,7 @@ async def query_commodities_value_daily(
 
 
 async def query_commodities_value_monthly(
-    client: BigQueryClient,
+    client: Client,
     commodity_code: str,
     start_date: str,
     end_date: str
@@ -70,12 +70,13 @@ async def query_commodities_value_monthly(
     return df.to_markdown(index=False)
 
 
-def register_tool(mcp, client: BigQueryClient):
+def register_tool(mcp, client: Client):
     @mcp.tool()
     
     async def get_commodities_value(commodity_code: str, start_date: str, end_date: str, duration: str) -> str:
         """
         Fetch commodities value from BigQuery for the given commodity code and date range.
+        Commodity code examples: 'GOLD', 'SILVER', 'OIL', etc.
         
         Args:
             commodity_code: Commodity code to query

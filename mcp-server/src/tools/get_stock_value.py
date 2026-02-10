@@ -1,13 +1,13 @@
 import os
 from google.cloud import bigquery
-from client import BigQueryClient
+from client import Client
 from logger import logger
 import pandas as pd
 import anyio
 
 
 async def query_stock_value_daily(
-    client: BigQueryClient,
+    client: Client,
     stock_symbol: str,
     start_date: str,
     end_date: str
@@ -40,7 +40,7 @@ async def query_stock_value_daily(
     )
 
     try:
-        results = await client.aexecute_query(sql, job_config=job_config)
+        results = await client.bigquery_client.aexecute_query(sql, job_config=job_config)
         df = pd.DataFrame([dict(row) for row in results])
 
         if df.empty:
@@ -55,7 +55,7 @@ async def query_stock_value_daily(
 
 
 async def query_stock_value_monthly(
-    client: BigQueryClient,
+    client: Client,
     stock_symbol: str,
     start_date: str,
     end_date: str
@@ -89,7 +89,7 @@ async def query_stock_value_monthly(
 
 
     try:
-        results = await client.aexecute_query(query)
+        results = await client.bigquery_client.aexecute_query(query, job_config=job_config)
         df = pd.DataFrame([dict(row) for row in results])
         if df.empty:
             return "No data found for the given parameters."
@@ -100,7 +100,7 @@ async def query_stock_value_monthly(
         return f"Error querying stock value: {e}"
 
 
-def register_tool(mcp, client: BigQueryClient):
+def register_tool(mcp, client: Client):
     @mcp.tool()
     
     async def get_stock_value(stock_code: str, start_date: str, end_date: str, duration: str) -> str:

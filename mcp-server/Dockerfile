@@ -35,8 +35,6 @@ COPY --from=builder --chown=appuser:appuser /root/.local /home/appuser/.local
 COPY --chown=appuser:appuser . .
 
 # Copy entrypoint script
-COPY --chown=appuser:appuser docker-entrypoint.sh /app/docker-entrypoint.sh
-RUN chmod +x /app/docker-entrypoint.sh
 
 # Update PATH for user-installed packages
 ENV PATH=/home/appuser/.local/bin:$PATH
@@ -53,5 +51,4 @@ HEALTHCHECK --interval=10s --timeout=5s --start-period=10s --retries=5 \
     CMD python -c "import socket; s=socket.socket(); s.connect(('localhost', 9003)); s.close()"
 
 # Run the entrypoint script
-ENTRYPOINT ["/app/docker-entrypoint.sh"]
-CMD ["--transport", "sse", "--host", "0.0.0.0", "--port", "9003"]
+CMD ["python", "src/server.py", "--transport", "sse", "--host", "0.0.0.0", "--port", "9003"]

@@ -22,3 +22,10 @@ Start all services with Docker Compose:
 ```bash
 docker-compose up -d
 ```
+
+
+Init with vectordb installed
+
+```
+docker compose --profile vectordb-init run --rm vectordb-init
+```
