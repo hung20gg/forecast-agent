@@ -3,13 +3,15 @@ import json
 from dataclasses import asdict
 
 import asyncio
+current_time = "2025-12-31"
 
 async def test_react():
     agent_config = {
         "agent_type": "react",
         "streaming": True,
         "model_name": "gpt-4.1-mini",
-        "urls" : ["http://localhost:9003/sse"]
+        "urls" : ["http://localhost:9003/sse"],
+        "current_time": current_time
     }
 
     agent_state_config = {
@@ -36,7 +38,8 @@ async def test_researcher():
         "agent_type": "researcher",
         "streaming": False,
         "model_name": "gpt-4.1-mini",
-        "urls" : ["http://localhost:9003/sse"]
+        "urls" : ["http://localhost:9003/sse"],
+        "current_time": current_time
     }
 
     researcher_state_config = {
@@ -60,7 +63,8 @@ async def test_deep_research():
         "agent_type": "deep_research",
         "streaming": True,
         "model_name": "gpt-4.1-mini",
-        "urls" : ["http://localhost:9003/sse"]
+        "urls" : ["http://localhost:9003/sse"],
+        "current_time": current_time
     }
 
     deep_research_state_config = {
@@ -116,4 +120,4 @@ async def test_deep_research():
 
 if __name__ == "__main__":
 
-    asyncio.run(test_react())
+    asyncio.run(test_deep_research())

@@ -29,3 +29,14 @@ Init with vectordb installed
 ```
 docker compose --profile vectordb-init run --rm vectordb-init
 ```
+
+For macos
+
+Embedding service is not compatible with Apple Silicon (M1/M2) due to the base image being x86_64. 
+You should run it independently via 
+
+```
+model=google/embeddinggemma-300m
+text-embeddings-router --model-id $model --port 8080
+```
+

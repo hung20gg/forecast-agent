@@ -60,6 +60,7 @@ class OpenDeepResearchState(AgentState):
     research_briefs: List[str] = field(default_factory=list)
     research_counter: int = 0
     supervisor_counter: int = 0
+    final_report: Optional[str] = None
     raw_messages: List[Dict[str, Any]] = field(default_factory=list)
     supervisor_messages: List[Dict[str, Any]] = field(default_factory=list)
     research_tasks: List[ResearcherState] = field(default_factory=list)

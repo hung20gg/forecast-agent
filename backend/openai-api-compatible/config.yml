@@ -14,6 +14,7 @@ models:
 # Default base models if not specified
 default_models:
   - "gpt-4.1-mini"
+  - "gpt-5-mini"
 
 # Server configuration
 server:

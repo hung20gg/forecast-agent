@@ -3,7 +3,24 @@ import numpy as np
 from tqdm import tqdm
 
 import os
+
+
 current_dir = os.path.dirname(os.path.abspath(__file__))
+
+
+def calculate_industry_financial_statement(version: str, output_path: str = '../data'):
+    company_table = pd.read_csv(os.path.join(current_dir, '../data/df_company_info.csv'))
+    df_fs = pd.read_parquet(os.path.join(current_dir, output_path, f'financial_statement_{version}.parquet'))
+    df_fs = pd.merge(df_fs, company_table[['stock_code', 'industry']], on='stock_code', how='left')
+
+    df_industry_fs = df_fs.groupby(['industry', 'year', 'quarter', 'category_code', 'date_added'])['data'].agg([ 'mean']).reset_index()
+    df_industry_fs.rename(columns={'mean': 'data', 'industry': 'stock_code'}, inplace=True)
+
+
+
+
+
+
 mapping_file = pd.ExcelFile(os.path.join(current_dir, 'metadata', 'vietnames_to_fiin.xlsx'))
 
 df_map_bank = mapping_file.parse('fiin_bank')

@@ -10,7 +10,7 @@ from env_config import get_env
 
 def get_embedding(query: str) -> Optional[list[float]]:
     """Get embedding vector for a text query."""
-    embedding_url = get_env('EMBEDDING_URL', 'http://127.0.0.1:8081/embed')
+    embedding_url = get_env('EMBEDDING_URL', 'http://127.0.0.1:8080/embed')
     if not embedding_url:
         raise ValueError("EMBEDDING_URL is not set in environment variables.")
     
@@ -42,6 +42,7 @@ class Qdrant:
             url: Qdrant host URL
             api_key: API key for Qdrant authentication
         """
+        logger.info(f"Initializing Qdrant client with URL: {url} and API Key: {'***' if api_key else 'None'}")
         self.url = url or get_env('QDRANT_URL', 'http://localhost:6333')
         self.api_key = api_key or get_env('QDRANT_API_KEY')
         
@@ -197,6 +198,9 @@ class Client:
             url=qdrant_url,
             api_key=qdrant_api_key
         )
+
+        embedding_url = get_env('EMBEDDING_URL')
+        logger.info(f"Client initialized with embedding URL: {embedding_url}")
         
         self.limit_time = limit_time    
         

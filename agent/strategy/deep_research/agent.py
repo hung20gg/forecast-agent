@@ -265,7 +265,9 @@ class OpenDeepResearchAgent(BaseAgentMCP[OpenDeepResearchState, OpenDeepResearch
                     {
                         "role": "system",
                         "content": self.config.supervisor_system_prompt.format(
-                            current_time=self.config.current_time
+                            current_time=self.config.current_time,
+                            max_research_iterations = self.config.max_supervisor_iterations,
+                            max_concurrent_researchers = self.config.max_concurrent_researchers
                         )
                     }
                 ]
@@ -363,7 +365,51 @@ class OpenDeepResearchAgent(BaseAgentMCP[OpenDeepResearchState, OpenDeepResearch
         
     @weave.op(call_display_name="Final Report Generation")
     async def final_report_generation(self, state: OpenDeepResearchState) -> OpenDeepResearchState:
-        pass
+        logger.info("[NODE] - Final Report Generation")
+        flatten_supervisor_messages = flatten_messages(state.supervisor_messages)
+
+        final_report_messages = [
+            {
+                "role": "system",
+                "content": self.config.final_report_prompt.format(
+                    current_time=self.config.current_time
+                )
+            },
+            {
+                "role": "user",
+                "content": """
+
+        <User Request>
+        {user_request}
+        </User Request>
+                        
+        <Research Brief>
+        {research_brief}
+        </Research Brief>
+
+        <Findings>
+        {findings}
+        </Findings>
+
+        """.format(
+                    user_request=state.user_request,
+                    research_brief=state.research_briefs[-1] if state.research_briefs else "",
+                    findings=flatten_supervisor_messages)
+            }
+        ]
+
+        if self.config.streaming:
+            stream_writer = get_stream_writer()
+            response = ""
+            async for chunk in self.llm.astream(final_report_messages):
+                stream_writer({'type': 'content', 'content': chunk})
+                response += chunk
+        else:
+            response = await self.llm.ainvoke(final_report_messages)
+        
+        state.final_report = response
+
+        return state
 
     def is_question_clarified(self, state: OpenDeepResearchState) -> str:
         

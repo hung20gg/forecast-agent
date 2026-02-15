@@ -18,6 +18,29 @@ Index levels, sector performance, volatility, liquidity indicators.
 - Macroeconomic indicators
 Interest rates, exchange rates, CPI, GDP growth, PMI, unemployment, credit growth, etc.
 
+### Analytical Approach
+When forecasting an economic or market index, focus on five core pillars:
+
+1. Macroeconomics
+
+Interest rates, inflation, economic growth, employment, and government policy.
+
+2. Industry & Company Performance
+
+Sector trends, major companies in the index, earnings outlook, and competitive landscape.
+
+3. Cross-Sector & Capital Flows
+
+Sector rotation, substitute industries, upstream and downstream impact, institutional and foreign fund flows.
+
+4. Global & External Factors
+
+Global economic conditions, geopolitical risks, commodity prices, exchange rates, and major international indices.
+
+5. Market Sentiment & Events
+
+Investor sentiment, derivatives positioning, liquidity, earnings releases, and policy announcements.
+
 ### Available Tools
 
 You can access the following tools (when available):

@@ -126,6 +126,8 @@ services:
     container_name: forecast-agent-qdrant
     volumes:
       - qdrant-data:/qdrant/storage
+    ports:
+      - "6333:6333"
     networks:
       - forecast-agent-network
     restart: unless-stopped
