@@ -8,17 +8,24 @@ import os
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
 
-def calculate_industry_financial_statement(version: str, output_path: str = '../data'):
-    company_table = pd.read_csv(os.path.join(current_dir, '../data/df_company_info.csv'))
-    df_fs = pd.read_parquet(os.path.join(current_dir, output_path, f'financial_statement_{version}.parquet'))
+def calculate_industry_financial_statement(df_fs):
+    company_table = pd.read_csv(os.path.join(current_dir, 'metadata', 'df_company_info.csv'))
     df_fs = pd.merge(df_fs, company_table[['stock_code', 'industry']], on='stock_code', how='left')
 
     df_industry_fs = df_fs.groupby(['industry', 'year', 'quarter', 'category_code', 'date_added'])['data'].agg([ 'mean']).reset_index()
     df_industry_fs.rename(columns={'mean': 'data', 'industry': 'stock_code'}, inplace=True)
 
+    return df_industry_fs
 
 
+def calculate_industry_financial_statement_explaination(df_tm):
+    company_table = pd.read_csv(os.path.join(current_dir, 'metadata', 'df_company_info.csv'))
+    df_tm = pd.merge(df_tm, company_table[['stock_code', 'industry']], on='stock_code', how='left')
 
+    df_industry_tm = df_tm.groupby(['industry', 'year', 'quarter', 'category_code', 'date_added'])['data'].agg(['sum', 'mean']).reset_index()
+    df_industry_tm.rename(columns={'sum': 'data_sum', 'mean': 'data_mean'}, inplace=True)
+
+    return df_industry_tm
 
 
 mapping_file = pd.ExcelFile(os.path.join(current_dir, 'metadata', 'vietnames_to_fiin.xlsx'))
@@ -40,9 +47,9 @@ df_map_tm_sec['category_code'] = df_map_tm_sec['category_code'].apply(lambda x: 
 df_map_tm_corp['category_code'] = df_map_tm_corp['category_code'].apply(lambda x: "Corp_" + x)
 
 
-df_bs = mapping_file.parse('Standard BS')
-df_is = mapping_file.parse('Standard IS')
-df_cf = mapping_file.parse('Standard CF')
+df_bs = mapping_file.parse('Standard BS').dropna(subset=['universal_code'])
+df_is = mapping_file.parse('Standard IS').dropna(subset=['universal_code'])
+df_cf = mapping_file.parse('Standard CF').dropna(subset=['universal_code'])
 
 df_bs['Universal_caption'] = df_bs['Universal_caption'].apply(lambda x: f'(Balance sheet) {x}')
 df_is['Universal_caption'] = df_is['Universal_caption'].apply(lambda x: f'(Income statement) {x}')
@@ -164,7 +171,7 @@ df_map_tm_corp.dropna(subset=['en_caption'], inplace=True)
 
 df_tm_map = pd.concat([df_map_tm_bank, df_map_tm_sec, df_map_tm_corp], ignore_index=True)
 df_tm_map.drop_duplicates(subset=['category_code'], inplace=True)
-df_tm_map['en_caption'] = df_tm_map['en_caption'].apply(lambda x: "(Explaination) " + x)
+df_tm_map['en_caption'] = df_tm_map['en_caption'].apply(lambda x: "(Explaination) " + x if x else x)
 
 def get_data(excel_file, type_):
     
@@ -279,7 +286,8 @@ def get_tm(excel_file, type_):
     data = []
     for index, row in df.iterrows():
         for col in get_column:
-            data.append([row['category_code'], col, row[col]])
+            if row['en_caption'] is not np.nan and not pd.isna(row['category_code']):
+                data.append([row['category_code'], col, row[col]])
             
             
             
@@ -293,7 +301,7 @@ non_bank_stock_code = ["HSG", "ELC", "VSC", "ACV", "REE", "SZC", "CSV", "PAN", "
 bank_stock_code = ["BID", "EIB", "OCB", "CTG", "VCB", "ACB", "MBB", "HDB", "TPB", "VPB",  "STB", "TCB",  "SHB", "VIB",  "ABB", "LPB", "NVB"]
 securities_stock_code = ["MBS", "VND", "SSI", "VIX", "ORS"]
 
-root_dir = r'C:\Users\Admin\Downloads\DOANH NGHIỆP-20260121T174946Z-3-001\DOANH NGHIỆP'
+root_dir = r'/Users/quanghung20gg/Downloads/DOANH NGHIỆP'
 file_dir = "{code}/FiinProX_DuLieuTaiChinh_BaoCaoTaiChinh_Yearly_Hop_nhat_{code}_20260120.xlsx"
 file_dir_quarter = "{code}/FiinProX_DuLieuTaiChinh_BaoCaoTaiChinh_Quarterly_Hop_nhat_{code}_20260120.xlsx"
 
@@ -303,6 +311,7 @@ dfs_corp_tm = []
 for code in tqdm(non_bank_stock_code):
     file_path  = os.path.join(root_dir, file_dir.format(code=code)).replace('\\', os.sep).replace('/', os.sep)
     if os.path.exists(file_path):
+        print(f"Processing {code}...")
         excel_file = pd.ExcelFile(file_path, engine="openpyxl")
         df_corp_y = get_data(excel_file, 'corp')
         df_corp_y['stock_code'] = code
@@ -317,6 +326,7 @@ dfs_bank_tm = []
 for code in tqdm(bank_stock_code):
     file_path  = os.path.join(root_dir, file_dir.format(code=code)).replace('\\', os.sep).replace('/', os.sep)
     if os.path.exists(file_path):
+        print(f"Processing {code}...")
         excel_file = pd.ExcelFile(file_path, engine="openpyxl")
         df_bank_y = get_data(excel_file, 'bank')
         df_bank_y['stock_code'] = code
@@ -324,6 +334,8 @@ for code in tqdm(bank_stock_code):
         
         df_bank_tm = get_tm(excel_file, 'bank')
         df_bank_tm['stock_code'] = code
+
+        print(df_bank_y.head())
         dfs_bank_tm.append(df_bank_tm)
     
 dfs_sec = []
@@ -331,6 +343,7 @@ dfs_sec_tm = []
 for code in tqdm(securities_stock_code):
     file_path  = os.path.join(root_dir, file_dir.format(code=code)).replace('\\', os.sep).replace('/', os.sep)
     if os.path.exists(file_path):
+        print(f"Processing {code}...")
         excel_file = pd.ExcelFile(file_path, engine="openpyxl")
         df_sec_y = get_data(excel_file, 'sec')
         df_sec_y['stock_code'] = code
@@ -382,11 +395,12 @@ for code in tqdm(securities_stock_code):
     
 df_bank = pd.concat(dfs_bank)
 df_corp = pd.concat(dfs_corp)
-df_sec = pd.concat( dfs_sec)
+df_sec = pd.concat(dfs_sec)
 
 df_bank_tm = pd.concat(dfs_bank_tm)
 df_corp_tm = pd.concat(dfs_corp_tm)
 df_sec_tm = pd.concat(dfs_sec_tm)
+
 
 
 def get_quarter_time(text):
@@ -413,9 +427,6 @@ df_sec.drop(columns=['time'], inplace=True)
 df_sec_tm.drop(columns=['time'], inplace=True)
 df_bank_tm.drop(columns=['time'], inplace=True)
 df_corp_tm.drop(columns=['time'], inplace=True)
-
-
-print(df_sec.tail())
 
 quarter_to_month = {
     0: 12,  # Quarter 0 is December of the same year
@@ -530,12 +541,20 @@ df_sec_tm = df_sec_tm[df_sec_tm['year']>=2010]
 df_bank_tm = df_bank_tm[df_bank_tm['year']>=2010]
 df_corp_tm = df_corp_tm[df_corp_tm['year']>=2010]
 
-df_sec.fillna(0, inplace=True)
-df_bank.fillna(0, inplace=True)
-df_corp.fillna(0, inplace=True)
-df_sec_tm.fillna(0, inplace=True)
-df_bank_tm.fillna(0, inplace=True)
-df_corp_tm.fillna(0, inplace=True)
+df_bank['segment'] = 'bank'
+df_corp['segment'] = 'corp'
+df_sec['segment'] = 'sec'
+
+
+
+
+df_sec.dropna(subset=['data'], inplace=True)
+df_bank.dropna(subset=['data'], inplace=True)
+df_corp.dropna(subset=['data'], inplace=True)
+df_sec_tm.dropna(subset=['data'], inplace=True)
+df_bank_tm.dropna(subset=['data'], inplace=True)
+df_corp_tm.dropna(subset=['data'], inplace=True)
+
 
 df_sec.to_parquet(os.path.join(current_dir, '..', '..', 'data', 'securities_financial_report.parquet'), index=False)
 df_bank.to_parquet(os.path.join(current_dir, '..', '..', 'data', 'bank_financial_report.parquet'), index=False)
@@ -545,25 +564,25 @@ df_bank.rename(columns={'category_code': 'bank_code'}, inplace=True)
 df_sec.rename(columns={'category_code': 'sec_code'}, inplace=True)
 df_corp.rename(columns={'category_code': 'corp_code'}, inplace=True)
 
-
 df_bank = pd.merge(df_bank, df[['bank_code', 'universal_code']], how='outer', on='bank_code')
-
 df_sec = pd.merge(df_sec, df[['sec_code', 'universal_code']], how='left', on='sec_code')
 df_corp = pd.merge(df_corp, df[['corp_code', 'universal_code']], how='outer', on='corp_code')
-df_bank = pd.merge(df_bank, df[['bank_code', 'universal_code']], how='left', on='bank_code')
 
 df_bank.drop(columns=['bank_code'], inplace=True)
 df_sec.drop(columns=['sec_code'], inplace=True)
 df_corp.drop(columns=['corp_code'], inplace=True)
 
 df_fs = pd.concat([df_bank, df_sec, df_corp], ignore_index=True)
-df_fs.rename(columns={'universal_code': 'category_code'}, inplace=True)
 
-df_fs.drop(columns=['universal_code_x', 'universal_code_y'], inplace=True)
+df_fs.rename(columns={'universal_code': 'category_code'}, inplace=True)
 
 
 df_fs.dropna(subset=['data', 'category_code'], inplace=True)
 
+df_industry_fs = calculate_industry_financial_statement(df_fs)
+
+df_industry_fs['segment'] = 'industry'
+df_fs = pd.concat([df_fs, df_industry_fs], ignore_index=True)
 
 df_fs.to_parquet(os.path.join(current_dir, '..', '..', 'data', 'financial_statement_v3.parquet'), index=False)
 
@@ -586,6 +605,9 @@ new_rows = pivot_df.melt(
 )
 df_bank_tm = pd.concat([df_bank_tm, new_rows], ignore_index=True)
 
+df_bank_tm['segment'] = 'bank'
+df_corp_tm['segment'] = 'corp'
+df_sec_tm['segment'] = 'sec'
 
 df_bank_tm.to_parquet(os.path.join(current_dir, '..', '..', 'data', 'bank_explaination.parquet'), index=False)
 df_sec_tm.to_parquet(os.path.join(current_dir, '..', '..', 'data', 'securities_explaination.parquet'), index=False)
@@ -593,4 +615,10 @@ df_corp_tm.to_parquet(os.path.join(current_dir, '..', '..', 'data', 'corp_explai
 
 
 df_tm = pd.concat([df_bank_tm, df_sec_tm, df_corp_tm], ignore_index=True)
+
+df_tm_industry = calculate_industry_financial_statement_explaination(df_bank_tm)
+df_tm_industry['segment'] = 'industry'
+
+df_tm = pd.concat([df_tm, df_tm_industry], ignore_index=True)
+
 df_tm.to_parquet(os.path.join(current_dir, '..', '..', 'data', 'financial_statement_explaination_v3.parquet'), index=False)

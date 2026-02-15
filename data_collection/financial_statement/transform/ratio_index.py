@@ -1293,19 +1293,20 @@ def modify_days_ratio(data_df):
 
 
 def industry_ratios(data_df, metric = 'BS_400', top_n = 20, output_path = '../data/'):
-    df_company = pd.read_csv(os.path.join(current_path, '../data/df_company_info.csv'))
+    df_company = pd.read_csv(os.path.join(current_path, 'metadata/df_company_info.csv'))
     
     # Read the financial statement data to get top 10 industries
     df_fs = pd.read_parquet(os.path.join(current_path, output_path, 'financial_statement_v3.parquet'))
+    df_fs = df_fs[df_fs['segment'] != 'industry'].copy()
 
     # Add industry to the data
     df_fs = pd.merge(df_fs, df_company[['stock_code', 'industry']], on='stock_code', how='left')
     
     top_20_stocks = (
         df_fs[df_fs['category_code'] == metric]
-        .groupby(['industry', 'year', 'quarter'], group_keys=False)
-        .apply(lambda x: x.nlargest(top_n, 'data'))
-        .reset_index(drop=True)
+        .groupby(['industry', 'year', 'quarter'])
+        .apply(lambda x: x.nlargest(top_n, 'data'), include_groups=False)
+        .reset_index()
     )[['industry', 'year', 'quarter', 'stock_code']]
 
     # Inner Join of top 20 stocks with the financial statement data
@@ -1336,21 +1337,7 @@ def calculate_index(version = 'v3', output_path: str = '../data/') -> Tuple[pd.D
     dfs = []
     types = ['corp',  'bank', 'securities']
 
-    df_stock_price_monthly = pd.read_parquet(os.path.join(current_path, '../../data/vn_stock_price_monthly.parquet').replace('\\','/'))
-    
-    # Convert time column to datetime if not already
-    df_stock_price_monthly['time'] = pd.to_datetime(df_stock_price_monthly['time'])
-    
-    # Extract year and quarter from time column
-    df_stock_price_monthly['year'] = df_stock_price_monthly['time'].dt.year
-    df_stock_price_monthly['quarter'] = df_stock_price_monthly['time'].dt.quarter
-    
-    # Get the last month's close price for each quarter
-    df_stock_price_quarter = (df_stock_price_monthly
-                              .sort_values('time')
-                              .groupby(['stock_code', 'year', 'quarter'])
-                              .last()
-                              .reset_index())
+    df_stock_price_quarter = pd.read_parquet(os.path.join(current_path, '../../data/stock_price_quarterly.parquet').replace('\\','/'))
     
     df_stock_price_quarter['category_code'] = 'Price'
     df_stock_price_quarter['data'] = df_stock_price_quarter['close']
@@ -1387,8 +1374,8 @@ def calculate_index(version = 'v3', output_path: str = '../data/') -> Tuple[pd.D
         # time_df.drop_duplicates(inplace=True)
         
         df = pd.merge(df, time_df, on='time_code', how='inner')
-        df.drop(columns=['time_code'], inplace=True)
-        
+        df['segment'] = type_
+        df.drop(columns=['time_code'], inplace=True)        
         dfs.append(df)
 
 
@@ -1403,21 +1390,30 @@ def calculate_index(version = 'v3', output_path: str = '../data/') -> Tuple[pd.D
     dfs.drop_duplicates(inplace=True)
     dfs.fillna(0, inplace=True)
     
-    dfs = dfs[['stock_code', 'year', 'quarter', 'ratio_code', 'data', 'date_added']]
-    
+    dfs = dfs[['stock_code', 'year', 'quarter', 'ratio_code', 'data', 'date_added', 'segment']]
     dfs = modify_days_ratio(dfs)
 
-    dfs.to_parquet(os.path.join(current_path, output_path ,'financial_ratio_v3.parquet'), index=False)
+    # dfs.to_parquet(os.path.join(current_path, output_path ,'financial_ratio_v3.parquet'), index=False)
     
 
     # Get the industry ratios
 
-    # df_industry_ratios = industry_ratios(dfs, metric='BS_400', top_n=15, output_path=output_path)
+    df_industry_ratios = industry_ratios(dfs, metric='BS_400', top_n=15, output_path=output_path)
+    df_industry_ratios['segment'] = 'industry'
+    df_all = pd.concat([dfs, df_industry_ratios.rename(columns={'data_mean': 'data', 'industry': 'stock_code'})], ignore_index=True)
+
+    df_all.to_parquet(os.path.join(current_path, output_path, f'financial_ratio_{version}.parquet'), index=False)
     # print(df_industry_ratios[(df_industry_ratios['ratio_code'] == 'BDR') & (df_industry_ratios['year'] == 2023)].head(10))
     # df_industry_ratios.to_parquet(os.path.join(current_path, output_path, f'industry_ratio_{version}.parquet'), index=False)
 
-    df_industry_ratios = pd.DataFrame()
-    
+    # # df_industry_ratios = pd.DataFrame()
+    # df_industry_ratios = df_industry_ratios.rename(columns={'data_mean': 'data', 'industry': 'stock_code'})
+    # df_industry_ratios['segment'] = 'industry'
+    # df_all = pd.concat([dfs, df_industry_ratios], ignore_index=True)
+
+    # df_all.to_parquet(os.path.join(current_path, output_path, f'financial_ratio_{version}.parquet'), index=False)
+
+    # df_industry_ratios = pd.DataFrame()  # Placeholder for industry ratios if not calculated
 
     return dfs, df_industry_ratios
 

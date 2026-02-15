@@ -2,7 +2,9 @@ version: '3.8'
 
 services:
   # MCP Server (Python) - Financial Data Analysis Tools
+  # Available in both "full" and "mcp-only" profiles
   mcp-server:
+    profiles: ["full", "mcp-only"]
     build:
       context: ./mcp-server
       dockerfile: Dockerfile
@@ -55,7 +57,9 @@ services:
   #     start_period: 5s
 
   # Backend API - OpenAI Compatible Agent Server
+  # Only in "full" profile
   backend:
+    profiles: ["full"]
     build:
       context: .
       dockerfile: backend/openai-api-compatible/Dockerfile
@@ -91,7 +95,9 @@ services:
       start_period: 40s
 
   # Frontend - Open WebUI
+  # Only in "full" profile
   frontend:
+    profiles: ["full"]
     image: ghcr.io/open-webui/open-webui:main-slim
     container_name: forecast-agent-frontend
     ports:
@@ -108,9 +114,10 @@ services:
         condition: service_healthy
     networks:
       - forecast-agent-network
-    restart: unless-stopped
-
+  # Text Embedding Service
+  # Available in both profiles
   text-embedding-service:
+    profiles: ["full", "mcp-only"]
     image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.8
     container_name: forecast-agent-embedding
     environment:
@@ -118,10 +125,14 @@ services:
     volumes:
       - ./data:/data
     command: --model-id ${EMBEDDING_MODEL_ID:-google/embeddinggemma-300m}
+  
     networks:
       - forecast-agent-network
-
+  # Vector Database
+  # Available in both profiles
   qdrant:
+    profiles: ["full", "mcp-only"]
+
     image: qdrant/qdrant:v1.16.3
     container_name: forecast-agent-qdrant
     volumes:

@@ -285,10 +285,10 @@ def register_tool(mcp, client: Client):
         duration: str
     ):
         """
-        Fetch financial ratio data from BigQuery for the given stock code, ratio code, and date range.
+        Fetch financial ratio data from BigQuery for the given stock symbol/industry, ratio code, and date range.
         
         Args:
-            stock_code: Stock code to query
+            stock_code: Stock code/Industry to query. For industry, currently support support "Banking" industry with stock_code = "Banking".
             ratio_code: Financial ratio code to query
             start_date: Start date in 'YYYY-MM-DD' format
             end_date: End date in 'YYYY-MM-DD' format
@@ -305,7 +305,7 @@ def register_tool(mcp, client: Client):
         Since financial statement accounts can be numerous and complex, this tool helps to find the exact account based on a user query.
         
         Args:
-            query: User query to find the exact financial statement account. Should be in English.
+            query: User query to find the exact financial statement account. Should be detailed in English (e.g., "Operating Revenue", "Cost of Goods Sold", "Loan from Financial ...", etc.)
         Returns:
             Financial statement account as a string or error message
         """
@@ -321,10 +321,10 @@ def register_tool(mcp, client: Client):
         duration: str
     ):
         """
-        Fetch financial statement data from BigQuery for the given stock code, category code, and date range.
+        Fetch financial statement data from BigQuery for the given stock symbol/industry, category code, and date range.
         
         Args:
-            stock_code: Stock code to query
+            stock_code: Stock code/Industry to query. For industry, currently support support "Banking" industry with stock_code = "Banking".
             category_code: Financial statement category code to query
             start_date: Start date in 'YYYY-MM-DD' format
             end_date: End date in 'YYYY-MM-DD' format

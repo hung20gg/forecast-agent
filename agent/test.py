@@ -59,7 +59,7 @@ async def main():
         print("Converted tools to OpenAI format:")
         print(json.dumps(openai_tools, indent=2))
         # Execute operations
-        result = await client.call_tool("query_relevant_news", {"query": "VIC", "start_date": "2025-01-01", "end_date": "2025-06-01"})
+        result = await client.call_tool("get_commodities_value", {"commodity_name": "Aluminum", "start_date": "2025-01-01", "end_date": "2025-06-01", "duration": "monthly"})
         print("Tool call result:")
         print(result.content[0].text)
         

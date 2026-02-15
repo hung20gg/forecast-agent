@@ -191,45 +191,17 @@ TOTAL LIABILITIES AND EQUITY,BS_440
 (Bank) Other commitments,BS_922
 Gross Revenue from sales and services rendered,IS_001
 Deductions from revenue,IS_002
-(Securities) Interest from financial assets measured at fair value through profit or loss (FVTPL),IS_003
-(Securities) Gain on sale of financial assets (FVTPL),IS_004
-(Securities) Revaluation gain on financial assets measured at fair value through profit or loss (FVTPL),IS_005
-"(Securities) Dividends, interest income from financial assets (FVTPL)",IS_006
-(Securities) Revaluation loss on outstanding warrants payable (FVTPL),IS_007
-(Securities) Interest from held-to-maturity investments (HTM),IS_008
-(Securities) Interest from loans and receivables,IS_009
-(Securities) Interest from available-for-sale (AFS) financial assets,IS_010
-(Securities) Brokerage commission revenue,IS_011
-(Securities) Underwriting and issuance agent revenue,IS_012
-(Securities) Investment advisory revenue,IS_013
-(Securities) Custody revenue,IS_014
-(Securities) Revenue from financial advisory services,IS_015
-(Securities) Other operating income,IS_016
 Net Revenue from sales and services rendered,IS_020
 (Securities) Loss from financial assets measured at fair value through profit or loss (FVTPL),IS_021
-(Securities) Loss on sale of financial assets,IS_022
-(Securities) Revaluation loss on financial assets measured at fair value through profit or loss (FVTPL),IS_023
-(Securities) Transaction costs for purchasing financial assets (FVTPL),IS_024
-(Securities) Revaluation gain on outstanding warrants payable,IS_025
 (Securities) Loss from held-to-maturity investments (HTM),IS_026
 (Securities) Loss on sale of available-for-sale (AFS) financial assets,IS_027
 "(Securities) Provision expenses for financial assets, bad debt write-offs, financial asset impairment, and borrowing costs",IS_028
-(Securities) Proprietary trading expenses,IS_029
-(Securities) Brokerage commission expenses,IS_030.1
-(Securities) Underwriting and issuance agent expenses,IS_031
-(Securities) Investment advisory expenses,IS_032
-(Securities) Custody expenses,IS_033
-(Securities) Financial commission expenses,IS_030.2
-(Securities) Other expenses,IS_034
 Cost of goods sold,IS_036
 Gross profit (Gross income) from sales and services (from collecting interest if bank),IS_040
 (Bank) Total Income from Activities,IS_150
 (Bank) Income from Service Activities,IS_151
 (Bank) Expenses from Service Activities,IS_152
 (Bank) Net Profit/Loss from Service Activities,IS_153
-(Securities) Exchange rate gain (realized and unrealized),IS_041
-"(Securities) Revenue, accrued dividend, and interest from non-fixed deposits generated during the period",IS_042
-"(Securities) Gain on sale and liquidation of investments in subsidiaries, associates, and joint ventures",IS_043
 (Securities) Other investment revenue,IS_044
 Financial income,IS_045
 (Securities) Exchange rate loss (realized and unrealized),IS_046
@@ -257,13 +229,9 @@ Corporate income tax expenses,IS_090
 Current corporate income tax expense,IS_091
 Deferred corporate income tax expense,IS_092
 Profit after corporate income tax (Net Income),IS_100
-(Securities) Profit after tax attributable to owners of the company,IS_101
-"(Securities) Profit after tax allocated to statutory reserves, financial reserves, and professional risk reserves as per the company's charter",IS_102
 Profit after tax attributable to the parent company,IS_103
 Profit after tax attributable to non-controlling interests,IS_104
 (Securities) OTHER COMPREHENSIVE INCOME (LOSS) AFTER TAX,IS_110
-(Securities) Total comprehensive income,IS_111
-(Securities) Comprehensive income attributable to owners of the company,IS_112
 (Securities) XIII. EARNINGS PER COMMON SHARE,IS_120
 Basic earnings per share,IS_130
 Diluted earnings per share,IS_140
@@ -293,14 +261,6 @@ Profit from business activities before changes in working capital,CF_020
 (Bank) Increase/(Decrease) in derivative financial instruments and other financial liabilities,CF_031
 (Bank) Increase/(Decrease) in other operating liabilities,CF_032
 (Bank) Payments from the funds of credit institutions,CF_033
-(Securities) Increase (decrease) in financial assets recognized through profit or loss (FVTPL),CF_200
-(Securities) Increase (decrease) in held-to-maturity investments (HTM),CF_201
-(Securities) Increase (decrease) in loans granted,CF_202
-(Securities) Increase (decrease) in available-for-sale financial assets (AFS),CF_203
-"(Securities) (-) Increase, (+) decrease in receivables from the sale of financial assets",CF_204
-"(Securities) (-) Increase, (+) decrease in receivables and accrued income from dividends and interest on financial assets",CF_205
-"(Securities) (-) Increase, (+) decrease in receivables from services provided by securities companies",CF_206
-(Securities) Increase/decrease in receivables,CF_207
 (Corporate) Increase/decrease in receivables,CF_034
 (Corporate) Increase/decrease in inventories,CF_035
 (Securities) Increase/decrease in other assets,CF_220
@@ -346,19 +306,9 @@ Cash and cash equivalents at the beginning of the period,CF_110
 Effects of exchange rate changes on foreign currency conversion,CF_120
 Cash and cash equivalents at the end of the period,CF_130
 (Explaination) Debt securities,Bank_TM_2
-(Explaination) Equity securities,Bank_TM_8
 (Explaination) Other trading securities,Bank_TM_12
 (Explaination) Provision for trading securities risk,Bank_TM_13
 (Explaination) Listing status of trading securities,Bank_TM_17
-(Explaination) Loans to domestic economic organizations and individuals,Bank_TM_28
-(Explaination) Discount of commercial papers and valuable papers,Bank_TM_29
-(Explaination) Financial leasing,Bank_TM_30
-(Explaination) Payments on behalf of customers,Bank_TM_31
-(Explaination) Loans funded by investment trust,Bank_TM_32
-(Explaination) Loans to foreign organizations and individuals,Bank_TM_33
-(Explaination) Loans designated by the Government,Bank_TM_34
-(Explaination) Frozen loans and loans pending resolution,Bank_TM_35
-(Explaination) Other loans,Bank_TM_36
 (Explaination) Loans to the trade industry,Bank_TM_38
 (Explaination) Loans to agriculture and forestry,Bank_TM_39
 (Explaination) Loans to the manufacturing industry,Bank_TM_40
@@ -397,18 +347,13 @@ Cash and cash equivalents at the end of the period,CF_130
 (Explaination) Holding Cash,Share_TM_1
 (Explaination) Bank deposits,Share_TM_2
 (Explaination) VALUE OF TRANSACTIONS PERFORMED DURING THE PERIOD BY SECURITIES COMPANIES,Sec_TM_100
-(Explaination) Value of Stocks (Securities firms),Sec_TM_101
-(Explaination) Value of Bonds (Securities firms),Sec_TM_102
 (Explaination) VALUE OF TRANSACTIONS PERFORMED DURING THE PERIOD BY INVESTORS,Sec_TM_108
-(Explaination) Value of Stocks (Inverstors),Sec_TM_109
-(Explaination) Value of Bonds (Inverstors),Sec_TM_110
 (Explaination) PROVISION FOR IMPAIRMENT OF FINANCIAL ASSETS,Sec_TM_246
 "(Explaination) Payables on behalf of investors for dividends, principal, and interest of bonds",Sec_TM_371
 (Explaination) Bank loans,Share_TM_3
 (Explaination) Loans from other entities,Share_TM_4
 (Explaination) Bonds issued,Share_TM_5
-(Explaination) Financial leases,Share_TM_6
-(Explaination) Other long-term liabilities,Sec_TM_413
+(Explaination) Financial leases,Sec_TM_412
 (Explaination) Short-term investments,Corp_TM_7
 "(Explaination) Raw materials, supplies",Corp_TM_20
 (Explaination) Finished goods,Corp_TM_23
@@ -419,8 +364,4 @@ Cash and cash equivalents at the end of the period,CF_130
 (Explaination) Sales revenue,Corp_TM_114
 (Explaination) Revenue from service provision,Corp_TM_115
 (Explaination) Revenue from construction contracts,Corp_TM_116
-(Explaination) Interest income from deposits and loans,Corp_TM_134
-"(Explaination) Interest income from bonds, promissory notes, treasury bills",Corp_TM_135
-"(Explaination) Dividends, profit share received",Corp_TM_136
-"(Explaination) Gain from sale, liquidation of investments",Corp_TM_137
 (Explaination) Loan interest,Corp_TM_144
