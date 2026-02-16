@@ -21,6 +21,31 @@ def truncate_text(text: str, max_length: int = 750) -> str:
     return text[:max_length] + "..."
 
 
+def json_news_to_markdown(data: dict) -> str:
+    """Convert JSON news data to a Markdown table format."""
+    
+    text = ''
+    if 'title' in data:
+        text += f"### {data['title']}\n\n"
+    if 'source' in data:
+        text += f"**Source:** {data['source']}\n\n"
+    if 'pub_date' in data:
+        if isinstance(data['pub_date'], str):
+            pub_date = data['pub_date']
+        elif isinstance(data['pub_date'], datetime.datetime):
+            pub_date = data['pub_date'].strftime('%Y-%m-%d %H:%M:%S')
+        elif isinstance(data['pub_date'], int):
+            pub_date = datetime.datetime.fromtimestamp(data['pub_date']).strftime('%Y-%m-%d %H:%M:%S')
+
+        text += f"**Published:** {pub_date}\n\n"
+    if 'text' in data:
+        text += f"{data['text']}\n\n"
+    if 'url' in data:
+        text += f"[Read more]({data['url']})\n\n"
+    
+    return text.strip()
+
+
 async def query_news_from_vectordb(
     client: Client,
     user_query: str,
@@ -39,7 +64,6 @@ async def query_news_from_vectordb(
         
         start_ts = int(datetime.datetime.strptime(start_date, '%Y-%m-%d').timestamp())
         end_ts = int(datetime.datetime.strptime(end_date, '%Y-%m-%d').timestamp())
-        print(collection_name, start_ts, end_ts )
         results = client.qdrant_client.query(
             collection_name=collection_name,
             query=user_query,
@@ -79,7 +103,7 @@ async def query_news_from_vectordb(
                 logger.error(f"Error parsing article from URL {url}: {e}")
                 continue
         
-        return json.dumps(articles, default=str, indent=2, ensure_ascii=False)
+        return '\n\n'.join([json_news_to_markdown(article) for article in articles])
         
     except Exception as e:
         logger.error(f"Error querying from vectordb: {e}")
@@ -187,7 +211,7 @@ async def query_news(
                 row_dict['text'] = truncate_text(row_dict['text'], 750)
             formatted_results.append(row_dict)
         
-        return json.dumps(formatted_results, default=str, indent=2, ensure_ascii=False)
+        return '\n\n'.join([json_news_to_markdown(article) for article in formatted_results])
     except Exception as e:
         logger.error(f"Error querying news: {e}")
         return f"Error querying news: {e}"

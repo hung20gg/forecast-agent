@@ -75,7 +75,8 @@ async def test_deep_research():
         "agent_type": "researcher",
         "streaming": False,
         "model_name": "gpt-4.1-mini",
-        "urls" : ["http://localhost:9003/sse"]
+        "urls" : ["http://localhost:9003/sse"],
+        "current_time": current_time
     }
 
     dr_state = get_agent_state(**deep_research_state_config)

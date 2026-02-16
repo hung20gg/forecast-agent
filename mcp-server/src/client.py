@@ -72,7 +72,7 @@ class Qdrant:
         except Exception as e:
             logger.error(f"Connection test failed: {e}")
             return False
-        
+    
     def query(self, collection_name: str, query: str, start_date: Optional[int] = None, end_date: Optional[int] = None):
         """Execute a query against the Qdrant collection."""
         query_filter = None
@@ -97,8 +97,6 @@ class Qdrant:
                     )
                 )
             query_filter = models.Filter(must=filter_conditions)
-
-        print(query_filter)
         
         results = self.client.query_points(
             collection_name=collection_name,
@@ -106,8 +104,6 @@ class Qdrant:
             query_filter=query_filter,
             limit=5,
         )
-
-        print(results)
         
         # Convert results to JSON format
         formatted_results = []

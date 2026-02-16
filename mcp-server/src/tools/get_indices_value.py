@@ -1,72 +1,62 @@
 import os
+from google.cloud import bigquery
 from client import Client
 from logger import logger
 import pandas as pd
 import anyio
 
 
-async def query_indices_value_daily(
+async def query_indices_available(client: Client) -> str:
+    
+    query = """
+        SELECT DISTINCT index_name
+        FROM `ktln.indices_daily`
+        ORDER BY index_name
+    """
+    results = await client.aexecute_query(query)
+    df = pd.DataFrame([dict(row) for row in results])
+    if df.empty:
+        return "No indices data found. The indices data might not be available in the database."
+    
+    return df.to_markdown(index=False)
+
+
+async def query_indices_value(
     client: Client,
     index_name: str,
     start_date: str,
-    end_date: str
+    end_date: str,
+    duration: str = 'daily'
 ) -> str:
     
     end_date = min(end_date, client.limit_time) if client.limit_time else end_date
     
     query = f"""
         SELECT 
+            index_name,
             time,
             close,
             volume,
             EMA20,
             EMA50
         FROM 
-            `ktln.indices_daily`
+            `ktln.indices_{duration}`
         WHERE 
-            index_name = '{index_name}'
-            AND time BETWEEN '{start_date}' AND '{end_date}'
+            index_name = @index_name
+            AND time BETWEEN @start_date AND @end_date
         ORDER BY 
             time ASC
     """
-    try:
-        results = await client.bigquery_client.aexecute_query(query)
-        df = pd.DataFrame([dict(row) for row in results])
-        if df.empty:
-            return "No data found for the given parameters."
-        
-        return df.to_markdown(index=False)
-    except Exception as e:
-        logger.error(f"Error querying stock value: {e}")
-        return f"Error querying stock value: {e}"
 
-
-async def query_indices_value_monthly(
-    client: Client,
-    index_name: str,
-    start_date: str,
-    end_date: str
-) -> str:
-    
-    end_date = min(end_date, client.limit_time) if client.limit_time else end_date
-    
-    query = f"""
-        SELECT 
-            time,
-            close,
-            volume,
-            EMA12,
-            EMA26
-        FROM 
-            `ktln.indices_monthly`
-        WHERE 
-            index_name = '{index_name}'
-            AND time BETWEEN '{start_date}' AND '{end_date}'
-        ORDER BY 
-            time ASC
-    """
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("index_name", "STRING", index_name),
+            bigquery.ScalarQueryParameter("start_date", "TIMESTAMP", start_date),
+            bigquery.ScalarQueryParameter("end_date", "TIMESTAMP", end_date),
+        ]
+    )
     try:
-        results = await client.bigquery_client.aexecute_query(query)
+        results = await client.bigquery_client.aexecute_query(query, job_config=job_config)
         df = pd.DataFrame([dict(row) for row in results])
         if df.empty:
             return "No data found for the given parameters."
@@ -78,8 +68,18 @@ async def query_indices_value_monthly(
 
 
 def register_tool(mcp, client: Client):
-    @mcp.tool()
     
+    @mcp.tool()
+    async def get_indices_available() -> str:
+        """
+        Fetch available stock indices from BigQuery.
+        
+        Returns:
+            Available indices as a string or error message
+        """
+        return await query_indices_available(client)
+    
+    @mcp.tool()
     async def get_indices_value(index_name: str, start_date: str, end_date: str, duration: str) -> str:
         """
         Fetch indices value from BigQuery for the given index name and date range.
@@ -93,9 +93,9 @@ def register_tool(mcp, client: Client):
         Returns:
             Indices value as a string or error message
         """
-        if duration == 'daily':
-            return await query_indices_value_daily(client, index_name, start_date, end_date)
-        elif duration == 'monthly':
-            return await query_indices_value_monthly(client, index_name, start_date, end_date)
+        if duration not in ['daily', 'monthly']:
+            logger.error(f"Invalid duration specified: {duration}")
+            raise ValueError("Invalid duration specified. Use 'daily' or 'monthly'.")
+        
         else:
-            return "Invalid duration specified. Use 'daily' or 'monthly'."
+            return await query_indices_value(client, index_name, start_date, end_date, duration)

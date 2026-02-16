@@ -79,28 +79,37 @@ class BaseAgentMCP(Generic[StateT, ConfigT]):
         return 'continue'
     
     async def _single_tool_execute(self, tool_call: Dict[str, Any]) -> Dict[str, Any]:
-        tool_id = tool_call.get("id")
-        function = tool_call.get("function", {})
-        function_name = function.get("name")
-        logger.info(f"[FUNCTION]: {function_name} {function.get('arguments')}")
-        arguments = json.loads(function.get("arguments"))
-
-        tool_result = await self.mcp_client.call_tool(function_name, arguments)
         
-        #post-process tool result
-        response = tool_result.content[0].text
-        if response.startswith('{') or response.startswith('['):
-            try:
-                response = json.loads(response)
-            except json.JSONDecodeError:
-                pass  # Keep original text if JSON parsing fails
+        tool_id = None
+        tool_response = None
+        
+        try:
+            tool_id = tool_call.get("id")
+            function = tool_call.get("function", {})
+            function_name = function.get("name")
+            logger.info(f"[FUNCTION]: {function_name} {function.get('arguments')}")
+            arguments = json.loads(function.get("arguments"))
 
-        logger.info(f"[TOOL RESULT]: {json.dumps(response, ensure_ascii=False)}")
+            tool_result = await self.mcp_client.call_tool(function_name, arguments)
+            
+            #post-process tool result
+            response = tool_result.content[0].text
+            if response.startswith('{') or response.startswith('['):
+                try:
+                    response = json.loads(response)
+                except json.JSONDecodeError:
+                    pass  # Keep original text if JSON parsing fails
+
+            tool_response = json.dumps(response, ensure_ascii=False)
+        
+        except Exception as e:          
+            logger.error(f"Error executing tool: {e}")
+            tool_response = f"Error executing tool: {e}"
         
         return {
             "role": "tool",
             "tool_call_id": tool_id,
-            "content": json.dumps(response, ensure_ascii=False)
+            "content": tool_response
         }
     
     async def _tool_execute(self, tool_calls: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
