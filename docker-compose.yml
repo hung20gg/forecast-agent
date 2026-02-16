@@ -2,62 +2,64 @@ version: '3.8'
 
 services:
   # MCP Server (Python) - Financial Data Analysis Tools
-  # mcp-server:
-  #   build:
-  #     context: ./mcp-server
-  #     dockerfile: Dockerfile
-  #   container_name: forecast-agent-mcp-server
-  #   ports:
-  #     - "${MCP_SERVER_PORT:-9003}:9003"
-  #   environment:
-  #     - GCP_PROJECT_ID=${GCP_PROJECT_ID}
-  #     - GOOGLE_APPLICATION_CREDENTIALS=/app/keys/bigquery.json
-  #     - LIMIT_TIME=${LIMIT_TIME}
-  #     - MCP_SERVER_HOST=${MCP_SERVER_HOST:-0.0.0.0}
-  #     - MCP_SERVER_PORT=${MCP_SERVER_PORT:-9003}
-  #   volumes:
-  #     - ./mcp-server/keys:/app/keys:ro
-  #     - ./mcp-server/src:/app/src
-  #   networks:
-  #     - forecast-agent-network
-  #   restart: unless-stopped
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "python -c 'import socket; s=socket.socket(); s.connect((\"localhost\", 9003)); s.close()' || exit 1"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 5
-  #     start_period: 10s
-  #   profiles:
-  #     - python
-
-  # MCP Server (Rust) - High-Performance Financial Data Analysis Tools
-  mcp-server-rust:
+  # Available in both "full" and "mcp-only" profiles
+  mcp-server:
+    profiles: ["full", "mcp-only"]
     build:
-      context: ./mcp-server-rust
+      context: ./mcp-server
       dockerfile: Dockerfile
-    container_name: forecast-agent-mcp-server-rust
-    ports:
-      - "${MCP_SERVER_PORT:-9003}:9003"
+    container_name: forecast-agent-mcp-server
     environment:
-      - RUST_LOG=info
       - GCP_PROJECT_ID=${GCP_PROJECT_ID}
       - GOOGLE_APPLICATION_CREDENTIALS=/app/keys/bigquery.json
       - LIMIT_TIME=${LIMIT_TIME}
+      - MCP_SERVER_HOST=${MCP_SERVER_HOST:-0.0.0.0}
+      - MCP_SERVER_PORT=${MCP_SERVER_PORT:-9003}
+      - QDRANT_URL=http://qdrant:6333
+      - EMBEDDING_URL=http://text-embedding-service:80/embed
     volumes:
-      - ./mcp-server-rust/keys:/app/keys:ro
+      - ./mcp-server/keys:/app/keys:ro
+      - ./mcp-server/src:/app/src
     networks:
       - forecast-agent-network
     restart: unless-stopped
-    command: ["--transport", "sse", "--host", "0.0.0.0", "--port", "9003"]
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:9003/health || exit 1"]
+      test: ["CMD-SHELL", "python -c 'import socket; s=socket.socket(); s.connect((\"localhost\", 9003)); s.close()' || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 5s
+      start_period: 10s
+
+  # MCP Server (Rust) - High-Performance Financial Data Analysis Tools
+  # mcp-server-rust:
+  #   build:
+  #     context: ./mcp-server-rust
+  #     dockerfile: Dockerfile
+  #   container_name: forecast-agent-mcp-server-rust
+  #   ports:
+  #     - "${MCP_SERVER_PORT:-9003}:9003"
+  #   environment:
+  #     - RUST_LOG=info
+  #     - GCP_PROJECT_ID=${GCP_PROJECT_ID}
+  #     - GOOGLE_APPLICATION_CREDENTIALS=/app/keys/bigquery.json
+  #     - LIMIT_TIME=${LIMIT_TIME}
+  #   volumes:
+  #     - ./mcp-server-rust/keys:/app/keys:ro
+  #   networks:
+  #     - forecast-agent-network
+  #   restart: unless-stopped
+  #   command: ["--transport", "sse", "--host", "0.0.0.0", "--port", "9003"]
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "curl -sf http://localhost:9003/health || exit 1"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #     start_period: 5s
 
   # Backend API - OpenAI Compatible Agent Server
+  # Only in "full" profile
   backend:
+    profiles: ["full"]
     build:
       context: .
       dockerfile: backend/openai-api-compatible/Dockerfile
@@ -70,7 +72,7 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - NVIDIA_API_KEY=${NVIDIA_API_KEY}
       - GROQ_API_KEY=${GROQ_API_KEY}
-      - MCP_SERVER_URL=http://mcp-server-rust:9003/sse
+      - MCP_SERVER_URL=http://mcp-server:9003/sse
       - BACKEND_HOST=${BACKEND_HOST:-0.0.0.0}
       - BACKEND_PORT=${BACKEND_PORT:-8000}
       - BACKEND_API_KEY=${BACKEND_API_KEY}
@@ -79,9 +81,9 @@ services:
     volumes:
       - ./backend/openai-api-compatible:/app/backend/openai-api-compatible
       - ./agent:/app/agent
-    depends_on:
-      mcp-server-rust:
-        condition: service_healthy
+    # depends_on:
+    #   mcp-server:
+    #     condition: service_healthy
     networks:
       - forecast-agent-network
     restart: unless-stopped
@@ -93,7 +95,9 @@ services:
       start_period: 40s
 
   # Frontend - Open WebUI
+  # Only in "full" profile
   frontend:
+    profiles: ["full"]
     image: ghcr.io/open-webui/open-webui:main-slim
     container_name: forecast-agent-frontend
     ports:
@@ -110,7 +114,56 @@ services:
         condition: service_healthy
     networks:
       - forecast-agent-network
+  # Text Embedding Service
+  # Available in both profiles
+  text-embedding-service:
+    profiles: ["full", "mcp-only"]
+    image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.8
+    container_name: forecast-agent-embedding
+    environment:
+      - HF_TOKEN=${HF_TOKEN}
+    volumes:
+      - ./data:/data
+    command: --model-id ${EMBEDDING_MODEL_ID:-google/embeddinggemma-300m}
+  
+    networks:
+      - forecast-agent-network
+  # Vector Database
+  # Available in both profiles
+  qdrant:
+    profiles: ["full", "mcp-only"]
+
+    image: qdrant/qdrant:v1.16.3
+    container_name: forecast-agent-qdrant
+    volumes:
+      - qdrant-data:/qdrant/storage
+    ports:
+      - "6333:6333"
+    networks:
+      - forecast-agent-network
     restart: unless-stopped
+
+  vectordb-init:
+    build:
+      context: ./scripts
+      dockerfile: Dockerfile.vectordb-init
+    container_name: forecast-agent-vectordb-init
+    profiles:
+      - vectordb-init
+    depends_on:
+      - qdrant
+
+    environment:
+      - QDRANT_URL=http://qdrant:6333
+      - GCS_BUCKET_NAME=${GCS_BUCKET_NAME}
+      - COLLECTION_NAME=${COLLECTION_NAME}
+      - GCS_CREDENTIALS_PATH=/app/keys/bigquery.json
+      - ALLOW_VECTORDB_RESET=true
+    volumes:
+      - ./mcp-server/keys:/app/keys:ro
+    networks:
+      - forecast-agent-network
+    restart: "no"
 
 networks:
   forecast-agent-network:
@@ -118,3 +171,4 @@ networks:
 
 volumes:
   open-webui-data:
+  qdrant-data:

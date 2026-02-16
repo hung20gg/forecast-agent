@@ -3,7 +3,7 @@ import os
 import importlib
 import argparse
 from fastmcp import FastMCP
-from client import BigQueryClient
+from client import Client
 from env_config import load_env_config, get_env
 
 # Load environment configuration
@@ -16,9 +16,9 @@ mcp = FastMCP("Tools for Financal Data Analysis")
 
 
 credentials_path = os.path.join(current_dir, "..", "keys", "bigquery.json")
-client = BigQueryClient(
-    credentials_path=credentials_path,
-    project_id=get_env('GCP_PROJECT_ID'),
+client = Client(
+    bq_credentials_path=credentials_path,
+    bq_project_id=get_env('GCP_PROJECT_ID'),
     limit_time=get_env('LIMIT_TIME')
 )
 
@@ -32,11 +32,10 @@ print(f"탐색 대상 디렉토리: {tools_dir}")
 
 try:
     for filename in os.listdir(tools_dir):
-        # 파이썬 파일만 대상으로 하고, __init__.py 같은 특수 파일은 제외합니다.
+        # Only target Python files and exclude special files like __init__.py
         if filename.endswith(".py") and not filename.startswith("__"):
-            # 이제 모듈 경로는 'tools.list_databases'와 같은 상대 경로가 아닌,
-            # 파일 시스템의 절대 경로를 기반으로 로드해야 할 수도 있으므로,
-            # 더 안정적인 방식을 위해 모듈 로더를 직접 사용합니다. (아래 로직은 더 견고함)
+            # Module path is based on absolute file system path for more stable loading.
+            # Using module loader directly for more robust approach.
             module_name = f"tools.{filename[:-3]}"
 
             try:
@@ -45,18 +44,17 @@ try:
                 if hasattr(module, "register_tool"):
                     register_function = getattr(module, "register_tool")
                     register_function(mcp, client)
-                    print(f"✅ '{module_name}' 도구를 성공적으로 등록했습니다.")
+                    print(f"✅ Tool '{module_name}' registered successfully.")
                 else:
-                    print(f"⚠️ '{module_name}' 모듈에 'register_tool' 함수가 없어 건너뜁니다.")
+                    print(f"⚠️ Module '{module_name}' has no 'register_tool' function, skipping.")
 
             except Exception as e:
-                print(f"❌ '{module_name}' 도구를 등록하는 중 오류가 발생했습니다: {e}")
+                print(f"❌ Error registering tool '{module_name}': {e}")
 
 except FileNotFoundError:
-    print(f"❌ 치명적 오류: '{tools_dir}' 디렉토리를 찾을 수 없습니다. 파일 구조를 확인해주세요.")
+    print(f"❌ Fatal error: Directory '{tools_dir}' not found. Please check file structure.")
 except Exception as e:
-    print(f"❌ 도구 로딩 중 예상치 못한 오류 발생: {e}")
-
+    print(f"❌ Unexpected error while loading tools: {e}")
 
 
 # --- 서버 실행 ---

@@ -20,7 +20,7 @@ use axum::{
     Router,
 };
 use clap::Parser;
-use futures::stream::{self, Stream};
+use futures::stream::Stream;
 use mcp::*;
 use serde_json::Value;
 use std::collections::HashMap;
@@ -159,7 +159,7 @@ fn get_tools() -> Vec<Tool> {
         // News search
         Tool {
             name: "query_relevant_news".to_string(),
-            description: "Search and fetch relevant news articles from BigQuery based on a query and date range.".to_string(),
+            description: "Search and fetch relevant news articles based on query and date range. Uses vector similarity search if available, otherwise falls back to full-text search. Results are truncated to 750 characters. Use read_full_article to get complete content.".to_string(),
             input_schema: InputSchema {
                 schema_type: "object".to_string(),
                 properties: HashMap::from([
@@ -171,6 +171,18 @@ fn get_tools() -> Vec<Tool> {
                 required: vec!["query".to_string(), "start_date".to_string(), "end_date".to_string()],
             },
         },
+        // Read full article
+        Tool {
+            name: "read_full_article".to_string(),
+            description: "Fetch the complete, untruncated content of a news article by its URL.".to_string(),
+            input_schema: InputSchema {
+                schema_type: "object".to_string(),
+                properties: HashMap::from([
+                    ("url".to_string(), string_property("The URL of the article to fetch")),
+                ]),
+                required: vec!["url".to_string()],
+            },
+        },
     ]
 }
 
@@ -179,6 +191,7 @@ async fn handle_tool_call(
     client: &BigQueryClient,
     name: &str,
     args: &HashMap<String, Value>,
+    use_vectordb: bool,
 ) -> CallToolResult {
     // Helper to extract string arg
     let get_str = |key: &str| -> Option<String> {
@@ -312,7 +325,16 @@ async fn handle_tool_call(
             };
             let channel = get_str("channel");
 
-            let result = tools::news::query_relevant_news(client, &query, &start_date, &end_date, channel.as_deref()).await;
+            let result = tools::news::query_relevant_news(client, &query, &start_date, &end_date, channel.as_deref(), use_vectordb).await;
+            CallToolResult::text(result)
+        }
+
+        "read_full_article" => {
+            let Some(url) = get_str("url") else {
+                return CallToolResult::error("Missing required parameter: url".to_string());
+            };
+
+            let result = tools::news::get_new_from_url(client, &url).await;
             CallToolResult::text(result)
         }
 
@@ -325,6 +347,7 @@ async fn handle_tool_call(
 async fn handle_request(
     client: &BigQueryClient,
     request: JsonRpcRequest,
+    use_vectordb: bool,
 ) -> Option<JsonRpcResponse> {
     debug!("Handling request: {}", request.method);
 
@@ -375,7 +398,7 @@ async fn handle_request(
                 }
             };
 
-            let result = handle_tool_call(client, &params.name, &params.arguments).await;
+            let result = handle_tool_call(client, &params.name, &params.arguments, use_vectordb).await;
             Some(JsonRpcResponse::success(request.id, serde_json::to_value(result).unwrap()))
         }
 
@@ -412,6 +435,7 @@ fn init_tracing() {
 #[derive(Clone)]
 struct AppState {
     client: Arc<BigQueryClient>,
+    use_vectordb: bool,
     // Channel for SSE events - stores pending responses
     sse_responses: Arc<RwLock<HashMap<String, broadcast::Sender<String>>>>,
 }
@@ -472,7 +496,7 @@ async fn message_handler(
     debug!("Received request for session {}: {:?}", session_id, request.method);
 
     // Handle the request
-    let response = handle_request(&state.client, request).await;
+    let response = handle_request(&state.client, request, state.use_vectordb).await;
 
     // If it's a notification, return accepted but don't send response
     match response {
@@ -503,9 +527,10 @@ async fn health_handler() -> impl IntoResponse {
 }
 
 /// Run the SSE transport
-async fn run_sse_transport(client: BigQueryClient, host: &str, port: u16) -> Result<()> {
+async fn run_sse_transport(client: BigQueryClient, host: &str, port: u16, use_vectordb: bool) -> Result<()> {
     let state = AppState {
         client: Arc::new(client),
+        use_vectordb,
         sse_responses: Arc::new(RwLock::new(HashMap::new())),
     };
 
@@ -534,7 +559,7 @@ async fn run_sse_transport(client: BigQueryClient, host: &str, port: u16) -> Res
 }
 
 /// Run the stdio transport
-async fn run_stdio_transport(client: BigQueryClient) -> Result<()> {
+async fn run_stdio_transport(client: BigQueryClient, use_vectordb: bool) -> Result<()> {
     let stdin = std::io::stdin();
     let stdout = std::io::stdout();
     let reader = stdin.lock();
@@ -569,7 +594,7 @@ async fn run_stdio_transport(client: BigQueryClient) -> Result<()> {
             }
         };
 
-        let response = handle_request(&client, request).await;
+        let response = handle_request(&client, request, use_vectordb).await;
 
         // Only send response if it's not a notification
         if let Some(resp) = response {
@@ -608,13 +633,21 @@ async fn main() -> Result<()> {
 
     info!("BigQuery client initialized successfully");
 
+    // Test Qdrant connection
+    let use_vectordb = tools::news::test_qdrant_connection().await;
+    if use_vectordb {
+        info!("Qdrant connection successful - using vector search");
+    } else {
+        info!("Qdrant unavailable - using BigQuery fallback");
+    }
+
     // Run the appropriate transport
     match args.transport.as_str() {
         "sse" | "http" => {
-            run_sse_transport(client, &args.host, args.port).await?;
+            run_sse_transport(client, &args.host, args.port, use_vectordb).await?;
         }
         "stdio" | _ => {
-            run_stdio_transport(client).await?;
+            run_stdio_transport(client, use_vectordb).await?;
         }
     }
 

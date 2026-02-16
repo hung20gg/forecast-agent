@@ -1,6 +1,8 @@
 from langgraph.graph import StateGraph, START, END
 import os
 import weave
+from typing import Dict, Any, AsyncIterable
+
 
 from core.agent import BaseAgentMCP, BaseAgentMCPConfig
 from core.logger import logger
@@ -17,6 +19,7 @@ class ReActAgentConfig(BaseAgentMCPConfig):
     max_tool_calls: int = 5
 
 class ReActAgent(BaseAgentMCP[ReActAgentState, ReActAgentConfig]):
+    
     def __init__(self, config: ReActAgentConfig) -> None:
         super().__init__(config=config)
 
@@ -45,7 +48,7 @@ class ReActAgent(BaseAgentMCP[ReActAgentState, ReActAgentConfig]):
             )
 
         if state.current_iteration == 0:
-            state.current_iteration += 1
+            
             state.messages.append(
                 {
                     "role": "user",
@@ -53,23 +56,7 @@ class ReActAgent(BaseAgentMCP[ReActAgentState, ReActAgentConfig]):
                 }
             )
 
-
-
-
-        last_message = state.messages[-1]['content']
-        if isinstance(last_message, str):
-            last_message += "\nMaximum tool calls: {}".format(self.config.max_tool_calls)
-
-        elif isinstance(last_message, list):
-            last_message.append(
-                {
-                    'type': 'text',
-                    'text': "Maximum tool calls: {}".format(self.config.max_tool_calls)
-                }
-            )
-
-        state.messages[-1]['content'] = last_message
-
+        state.current_iteration += 1
         return await super().tool_calling(state)
 
     @weave.op(call_display_name="Finalize React Agent State")
@@ -103,20 +90,11 @@ class ReActAgent(BaseAgentMCP[ReActAgentState, ReActAgentConfig]):
 
         return graph
 
-
-    # async def ainvoke(self, state: ReActAgentState) -> ReActAgentState:
-    #     """Asynchronously invoke the agent with the given state"""
-
-    #     if not self.graph:
-    #         raise ValueError("Workflow graph is not defined.")
-        
-    #     # Run the workflow
-    #     with weave.thread(self.session_id) as thread_ctx:
-    #         logger.info(f"Starting agent invocation with thread ID: {self.session_id}")
-    #         state = await self.graph.ainvoke(state)
-
-    #     if state is None:
-    #         raise ValueError("Workflow execution returned None.")
-
-    #     return ReActAgentState(**state)
-        
+    @weave.op(call_display_name="Invoke ReAct Agent")
+    async def ainvoke(self, state: ReActAgentState) -> ReActAgentState:
+        return await super().ainvoke(state)
+    
+    @weave.op(call_display_name="Stream ReAct Agent")
+    async def stream(self, state: ReActAgentState, stream_mode="custom") -> AsyncIterable[Dict[str, Any]]:
+        async for chunk in super().stream(state, stream_mode=stream_mode):
+            yield chunk

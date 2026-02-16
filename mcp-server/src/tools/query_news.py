@@ -1,14 +1,147 @@
 import os
+import asyncio
 from typing import Optional
-from client import BigQueryClient
+from client import Client
 from google.cloud import bigquery
 from logger import logger
 import pandas as pd
 import anyio
 import json
+from env_config import get_env
+import datetime
+
+
+
+def truncate_text(text: str, max_length: int = 750) -> str:
+    """Truncate text to max_length characters, adding ... if truncated."""
+    if not text:
+        return ""
+    if len(text) <= max_length:
+        return text
+    return text[:max_length] + "..."
+
+
+def json_news_to_markdown(data: dict) -> str:
+    """Convert JSON news data to a Markdown table format."""
+    
+    text = ''
+    if 'title' in data:
+        text += f"### {data['title']}\n\n"
+    if 'source' in data:
+        text += f"**Source:** {data['source']}\n\n"
+    if 'pub_date' in data:
+        if isinstance(data['pub_date'], str):
+            pub_date = data['pub_date']
+        elif isinstance(data['pub_date'], datetime.datetime):
+            pub_date = data['pub_date'].strftime('%Y-%m-%d %H:%M:%S')
+        elif isinstance(data['pub_date'], int):
+            pub_date = datetime.datetime.fromtimestamp(data['pub_date']).strftime('%Y-%m-%d %H:%M:%S')
+
+        text += f"**Published:** {pub_date}\n\n"
+    if 'text' in data:
+        text += f"{data['text']}\n\n"
+    if 'url' in data:
+        text += f"[Read more]({data['url']})\n\n"
+    
+    return text.strip()
+
+
+async def query_news_from_vectordb(
+    client: Client,
+    user_query: str,
+    start_date: str,
+    end_date: str,
+) -> Optional[str]:
+    """Query news using vector similarity search."""
+    try:
+        # Get embedding for the query
+        
+        
+        # Query Qdrant
+        collection_name = get_env('COLLECTION_NAME', 'news_embedding')
+        
+        # Convert dates to timestamp for filtering
+        
+        start_ts = int(datetime.datetime.strptime(start_date, '%Y-%m-%d').timestamp())
+        end_ts = int(datetime.datetime.strptime(end_date, '%Y-%m-%d').timestamp())
+        results = client.qdrant_client.query(
+            collection_name=collection_name,
+            query=user_query,
+            start_date=start_ts,
+            end_date=end_ts
+        )
+        
+        if not results:
+            return json.dumps([], ensure_ascii=False)
+        
+        # Extract unique URLs with their scores from results
+        url_scores = {}
+        for r in results:
+            if 'url' in r['payload']:
+                url = r['payload']['url']
+                if url not in url_scores or r['score'] > url_scores[url]:
+                    url_scores[url] = r['score']
+        
+        # Fetch full articles for each URL
+        top_url_scores = list(url_scores.items())[:10]
+        tasks = [get_new_from_url(client, url) for url, _ in top_url_scores]
+        results = await asyncio.gather(*tasks)
+
+        articles = []
+        for (url, score), article_json in zip(top_url_scores, results):
+            try:
+                article_data = json.loads(article_json)
+                if article_data and len(article_data) > 0:
+                    article = article_data[0]
+                    # Add similarity score
+                    article['score'] = score
+                    # Truncate text field
+                    if 'text' in article:
+                        article['text'] = truncate_text(article['text'], 750)
+                    articles.append(article)
+            except Exception as e:
+                logger.error(f"Error parsing article from URL {url}: {e}")
+                continue
+        
+        return '\n\n'.join([json_news_to_markdown(article) for article in articles])
+        
+    except Exception as e:
+        logger.error(f"Error querying from vectordb: {e}")
+        return None
+
+
+async def get_new_from_url(client: Client, url: str) -> str:
+    
+    query = f"""
+        SELECT
+            url,
+            title,
+            source,
+            pub_date,
+            text
+        FROM `ktln.news`
+        WHERE url = @url
+        LIMIT 1
+    """
+    try:
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("url", "STRING", url),
+            ]
+        )
+        
+        results = await client.aexecute_query(query, job_config=job_config)
+        if not results:
+            return "No news found for the given URL."
+        
+        return json.dumps([dict(row) for row in results], default=str, indent=2, ensure_ascii=False)
+    except Exception as e:
+        logger.error(f"Error querying news by URL: {e}")
+        return f"Error querying news by URL: {e}"
+
 
 async def query_news(
-    client: BigQueryClient,
+    client: Client,
     user_query: str,
     start_date: str,
     end_date: str,
@@ -45,6 +178,7 @@ async def query_news(
                 title,
                 source,
                 pub_date,
+                text,
                 (
                     IF(SEARCH(title, @q), 2, 0) +
                     IF(SEARCH(text, @q), 1, 0)
@@ -69,25 +203,57 @@ async def query_news(
         if not results:
             return "No data found for the given parameters."
         
-        return json.dumps([dict(row) for row in results], default=str, indent=2, ensure_ascii=False)
+        # Truncate text field to 750 characters
+        formatted_results = []
+        for row in results:
+            row_dict = dict(row)
+            if 'text' in row_dict:
+                row_dict['text'] = truncate_text(row_dict['text'], 750)
+            formatted_results.append(row_dict)
+        
+        return '\n\n'.join([json_news_to_markdown(article) for article in formatted_results])
     except Exception as e:
         logger.error(f"Error querying news: {e}")
         return f"Error querying news: {e}"
 
 
-def register_tool(mcp, client: BigQueryClient):
+def register_tool(mcp, client: Client):
+    # Initialize Qdrant client
+
     @mcp.tool()
-    
     async def query_relevant_news(query: str, start_date: str, end_date: str, channel: Optional[str] = None) -> str:
         """
-        Fetch stock value from BigQuery for the given stock symbol and date range.
+        Fetch relevant news articles based on query, date range, and optional channel filter.
+        Uses vector similarity search if available, otherwise falls back to full-text search.
+        Results are truncated to 750 characters. Use read_full_article to get complete content.
         
         Args:
-            stock_symbol: Stock symbol to query
+            query: Search query string
             start_date: Start date in 'YYYY-MM-DD' format
             end_date: End date in 'YYYY-MM-DD' format
-            duration: 'daily' or 'monthly' to specify the data frequency
+            channel: Optional channel name filter
         Returns:
-            Stock value as a string or error message
+            JSON array of news articles (truncated to 750 chars) or error message
         """
+        # Try vector search first if available
+        if client.qdrant_client.test_connection():
+            result = await query_news_from_vectordb(client, query, start_date, end_date)
+            if result is not None:
+                return result
+            # If vector search fails, fall back to BigQuery
+            logger.warning("Vector search failed, falling back to BigQuery")
+        
+        # Fallback to BigQuery full-text search
         return await query_news(client, query, start_date, end_date, channel)
+    
+    @mcp.tool()
+    async def read_full_article(url: str) -> str:
+        """
+        Fetch the complete, untruncated content of a news article by its URL.
+        
+        Args:
+            url: The URL of the article to fetch
+        Returns:
+            Full article content as JSON or error message
+        """
+        return await get_new_from_url(client, url)

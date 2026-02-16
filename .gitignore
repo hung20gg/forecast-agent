@@ -9,3 +9,6 @@ keys/
 data/
 
 .*/
+.DS_Store
+
+temp/

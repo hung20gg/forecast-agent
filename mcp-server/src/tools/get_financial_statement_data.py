@@ -1,5 +1,5 @@
 import os
-from client import BigQueryClient
+from client import Client
 from google.cloud import bigquery
 from logger import logger
 import pandas as pd
@@ -8,7 +8,7 @@ from datetime import datetime
 
 
 async def _get_exact_financial_ratio_code(
-    client: BigQueryClient,
+    client: Client,
     query: str,
 ) -> str:
         
@@ -29,14 +29,14 @@ async def _get_exact_financial_ratio_code(
     results = await client.aexecute_query(sql, job_config=job_config)
     df = pd.DataFrame([dict(row) for row in results])
     if df.empty:
-        return "No data found for the given parameters."
+        return "No ratio found for the given parameters."
     
     return df.to_markdown(index=False)
 
 
 
 async def _query_financial_ratio(
-    client: BigQueryClient,
+    client: Client,
     stock_code: str,
     ratio_code: str,
     start_date: str,
@@ -61,7 +61,10 @@ async def _query_financial_ratio(
     results_check = await client.aexecute_query(sql_check, job_config=job_config_check)
     row_check = list(results_check)[0]
     if row_check['cnt'] == 0:
-        return f"Ratio code '{ratio_code}' does not exist. Please use the tool 'get_exact_financial_ratio_code' to find the correct ratio code."
+        similarity_result = await _get_exact_financial_ratio_code(client, ratio_code)
+        if "[FAILED]" in similarity_result:
+            return f"Ratio code '{ratio_code}' or similar names do not exist. Please change your query and use the tool 'get_exact_financial_ratio_code' to find the correct ratio code."
+        return f"Ratio code '{ratio_code}' does not exist. Here are some similar ratio codes or names that available:\n{similarity_result}"
     
     
     start_dt = datetime.fromisoformat(start_date)
@@ -125,13 +128,13 @@ async def _query_financial_ratio(
     results = await client.aexecute_query(sql, job_config=job_config)
     df = pd.DataFrame([dict(row) for row in results])
     if df.empty:
-        return "No data found for the given parameters."
+        return "[FAILED] No data found for the given parameters."
     
     return df.to_markdown(index=False)
 
 
 async def _get_exact_financial_statement_account(
-    client: BigQueryClient,
+    client: Client,
     query: str,
 ) -> str:
         
@@ -157,13 +160,13 @@ async def _get_exact_financial_statement_account(
     results = await client.aexecute_query(sql, job_config=job_config)
     df = pd.DataFrame([dict(row) for row in results])
     if df.empty:
-        return "No data found for the given parameters."
+        return "[FAILED] No category found for the given parameters."
     
     return df.to_markdown(index=False)
 
 
 async def _query_financial_statement(
-    client: BigQueryClient,
+    client: Client,
     stock_code: str,
     category_code: str,
     start_date: str,
@@ -186,7 +189,10 @@ async def _query_financial_statement(
     results_check = await client.aexecute_query(sql_check, job_config=job_config_check)
     row_check = list(results_check)[0]
     if row_check['cnt'] == 0:
-        return f"Category code '{category_code}' does not exist. Please use the tool 'get_exact_financial_statement_account' to find the correct category code."
+        similarity_result = await _get_exact_financial_statement_account(client, category_code)
+        if "[FAILED]" in similarity_result:
+            return f"[FAILED] Category code '{category_code}' or similar names do not exist. Please change your query and use the tool 'get_exact_financial_statement_account' to find the correct category code."
+        return f"[FAILED] Category code '{category_code}' does not exist. Here are some similar ratio codes or names that available:\n{similarity_result}"
     
     start_dt = datetime.fromisoformat(start_date)
     end_dt = datetime.fromisoformat(end_date)
@@ -249,13 +255,13 @@ async def _query_financial_statement(
     results = await client.aexecute_query(sql, job_config=job_config)
     df = pd.DataFrame([dict(row) for row in results])
     if df.empty:
-        return "No data found for the given parameters."
+        return "[FAILED] No data found for the given parameters."
     
     return df.to_markdown(index=False)
 
 
 
-def register_tool(mcp, client: BigQueryClient):
+def register_tool(mcp, client: Client):
     @mcp.tool()
     
     async def get_exact_financial_ratio_code(query: str) -> str:
@@ -279,10 +285,10 @@ def register_tool(mcp, client: BigQueryClient):
         duration: str
     ):
         """
-        Fetch financial ratio data from BigQuery for the given stock code, ratio code, and date range.
+        Fetch financial ratio data from BigQuery for the given stock symbol/industry, ratio code, and date range.
         
         Args:
-            stock_code: Stock code to query
+            stock_code: Stock code/Industry to query. For industry, currently support support "Banking" industry with stock_code = "Banking".
             ratio_code: Financial ratio code to query
             start_date: Start date in 'YYYY-MM-DD' format
             end_date: End date in 'YYYY-MM-DD' format
@@ -299,7 +305,7 @@ def register_tool(mcp, client: BigQueryClient):
         Since financial statement accounts can be numerous and complex, this tool helps to find the exact account based on a user query.
         
         Args:
-            query: User query to find the exact financial statement account. Should be in English.
+            query: User query to find the exact financial statement account. Should be detailed in English (e.g., "Operating Revenue", "Cost of Goods Sold", "Loan from Financial ...", etc.)
         Returns:
             Financial statement account as a string or error message
         """
@@ -315,10 +321,10 @@ def register_tool(mcp, client: BigQueryClient):
         duration: str
     ):
         """
-        Fetch financial statement data from BigQuery for the given stock code, category code, and date range.
+        Fetch financial statement data from BigQuery for the given stock symbol/industry, category code, and date range.
         
         Args:
-            stock_code: Stock code to query
+            stock_code: Stock code/Industry to query. For industry, currently support support "Banking" industry with stock_code = "Banking".
             category_code: Financial statement category code to query
             start_date: Start date in 'YYYY-MM-DD' format
             end_date: End date in 'YYYY-MM-DD' format

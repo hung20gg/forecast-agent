@@ -1,0 +1,17 @@
+# Production overrides - uses pre-built images instead of building
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile <full|mcp-only> up -d
+
+version: '3.8'
+
+services:
+  mcp-server:
+    image: quanghung20gg/forecast-mcp-server:latest
+    build: null
+
+  # backend:
+  #   image: quanghung20gg/forecast-backend:latest
+  #   build: null
+
+  # vectordb-init:
+  #   image: quanghung20gg/forecast-vectordb-init:latest
+  #   build: null

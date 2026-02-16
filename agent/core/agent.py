@@ -79,20 +79,37 @@ class BaseAgentMCP(Generic[StateT, ConfigT]):
         return 'continue'
     
     async def _single_tool_execute(self, tool_call: Dict[str, Any]) -> Dict[str, Any]:
-        tool_id = tool_call.get("id")
-        function = tool_call.get("function", {})
-        function_name = function.get("name")
-        logger.info(f"[FUNCTION]: {function_name} {function.get('arguments')}")
-        arguments = json.loads(function.get("arguments"))
+        
+        tool_id = None
+        tool_response = None
+        
+        try:
+            tool_id = tool_call.get("id")
+            function = tool_call.get("function", {})
+            function_name = function.get("name")
+            logger.info(f"[FUNCTION]: {function_name} {function.get('arguments')}")
+            arguments = json.loads(function.get("arguments"))
 
-        tool_result = await self.mcp_client.call_tool(function_name, arguments)
+            tool_result = await self.mcp_client.call_tool(function_name, arguments)
+            
+            #post-process tool result
+            response = tool_result.content[0].text
+            if response.startswith('{') or response.startswith('['):
+                try:
+                    response = json.loads(response)
+                except json.JSONDecodeError:
+                    pass  # Keep original text if JSON parsing fails
 
-        logger.info(f"[TOOL RESULT]: {json.dumps(tool_result.content[0].text)}")
+            tool_response = json.dumps(response, ensure_ascii=False)
+        
+        except Exception as e:          
+            logger.error(f"Error executing tool: {e}")
+            tool_response = f"Error executing tool: {e}"
         
         return {
             "role": "tool",
             "tool_call_id": tool_id,
-            "content": json.dumps(tool_result.content[0].text)
+            "content": tool_response
         }
     
     async def _tool_execute(self, tool_calls: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -167,7 +184,7 @@ class BaseAgentMCP(Generic[StateT, ConfigT]):
     def build_graph(self) -> Optional[StateGraph]:
         return None
 
-    
+    @weave.op(call_display_name="Invoke Agent")
     async def ainvoke(self, state: StateT) -> StateT:
 
         if not self.graph:
@@ -175,24 +192,25 @@ class BaseAgentMCP(Generic[StateT, ConfigT]):
         
         # Run the workflow
         with weave.thread(self.session_id) as thread_ctx:
-            
-            logger.info(f"Starting agent invocation with thread ID: {self.session_id}")
-            result  = await self.graph.ainvoke(state)
-            if result is None:
-                raise ValueError("Workflow execution returned None.")
+            with weave.attributes({'type': 'non-stream', 'Agent': self.config.agent_type}):
+                logger.info(f"Starting agent invocation with thread ID: {self.session_id}")
+                result  = await self.graph.ainvoke(state)
+                if result is None:
+                    raise ValueError("Workflow execution returned None.")
 
         return type(state)(**result)
 
-
+    @weave.op(call_display_name="Stream Agent")
     async def stream(self, state: StateT, stream_mode="custom") -> AsyncIterable[Dict[str, Any]]:
         
         if not self.graph:
             raise ValueError("Workflow graph is not defined.")
        
         with weave.thread(self.session_id) as thread_ctx:
-            logger.info(f"Starting agent invocation with thread ID: {self.session_id}")
-            
-            async for chunk in self.graph.astream(state, stream_mode=stream_mode):
-                yield chunk
+            with weave.attributes({'type': 'stream', 'Agent': self.config.agent_type}):
+                logger.info(f"Starting agent invocation with thread ID: {self.session_id}")
+                
+                async for chunk in self.graph.astream(state, stream_mode=stream_mode):
+                    yield chunk
         
 

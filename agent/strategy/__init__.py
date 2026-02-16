@@ -39,6 +39,8 @@ def get_agent_state(agent_type: str, **kwargs) -> Optional[type]:
         return ReActAgentState(**kwargs)
     elif agent_type == "deep_research":
         return OpenDeepResearchState(**kwargs)
+    elif agent_type == "researcher":
+        return ResearcherState(**kwargs)
     else:
         return None
     

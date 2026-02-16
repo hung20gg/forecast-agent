@@ -1,0 +1,15 @@
+# GPU-specific overrides for NVIDIA GPU acceleration
+# Usage: docker compose -f docker-compose.yml -f docker-compose.gpu.yml --profile <full|mcp-only> up
+
+version: '3.8'
+
+services:
+  text-embedding-service:
+    image: ghcr.io/huggingface/text-embeddings-inference:1.8
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

@@ -7,6 +7,10 @@ models:
     strategy: "react"
     description: "ReAct agent strategy for reasoning and acting"
   
+  researcher:
+    strategy: "researcher"
+    description: "Researcher agent strategy for information gathering. Sub-agent of Open-Deep-Research"
+
   open-deep-research:
     strategy: "open-deep-research"
     description: "Deep research strategy for comprehensive analysis"
@@ -14,6 +18,7 @@ models:
 # Default base models if not specified
 default_models:
   - "gpt-4.1-mini"
+  - "gpt-5-mini"
 
 # Server configuration
 server:

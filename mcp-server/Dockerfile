@@ -1,5 +1,5 @@
 # Multi-stage build for optimized final image
-FROM python:3.11-slim as builder
+FROM python:3.11-slim AS builder
 
 # Install build dependencies if needed
 RUN apt-get update && \
@@ -34,10 +34,14 @@ COPY --from=builder --chown=appuser:appuser /root/.local /home/appuser/.local
 # Copy application code
 COPY --chown=appuser:appuser . .
 
+# Copy entrypoint script
+
 # Update PATH for user-installed packages
 ENV PATH=/home/appuser/.local/bin:$PATH
 # Disable Python output buffering for real-time logs
 ENV PYTHONUNBUFFERED=1
+# Environment variable to control vectordb setup
+ENV SETUP_VECTORDB_ON_START=false
 
 # Switch to non-root user
 USER appuser
@@ -46,5 +50,5 @@ USER appuser
 HEALTHCHECK --interval=10s --timeout=5s --start-period=10s --retries=5 \
     CMD python -c "import socket; s=socket.socket(); s.connect(('localhost', 9003)); s.close()"
 
-# Run the server
+# Run the entrypoint script
 CMD ["python", "src/server.py", "--transport", "sse", "--host", "0.0.0.0", "--port", "9003"]
