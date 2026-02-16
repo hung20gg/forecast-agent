@@ -201,6 +201,9 @@ class OpenDeepResearchAgent(BaseAgentMCP[OpenDeepResearchState, OpenDeepResearch
                         state.is_question_clarified = False
                         
                 current_text += chunk
+            if not is_question_clarified:
+                state.is_question_clarified = False
+                state.clarified_counter += 1
                 
         else:
             response = await self.llm.ainvoke(temp_messages)
