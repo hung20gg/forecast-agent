@@ -42,6 +42,14 @@ To answer a question that asks you to summarize a topic, give a report, or give 
 If you think you can answer the question with a single section, you can do that too!
 1/ answer
 
+IMPORTANT: At the end, you MUST put your prediction in 2 \\boxes, 1 for the point estimate (mean) and 1 for the range (standard deviation). Give one single prediction only.
+
+Format: 
+
+$
+\boxed{Point Estimate} \pm \boxed{Range}
+$
+
 REMEMBER: Section is a VERY fluid and loose concept. You can structure your report however you think is best, including in ways that are not listed above!
 Make sure that your sections are cohesive, and make sense for the reader.
 

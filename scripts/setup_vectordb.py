@@ -59,8 +59,8 @@ def setup_vectordb():
         latest_blob = sorted(blobs, key=lambda x: x.name, reverse=True)[0]
         print(f"   Found: {latest_blob.name}")
         
-        # Download to temp directory
-        temp_dir = '/tmp/qdrant_restore'
+        # Download to shared snapshots directory
+        temp_dir = '/qdrant/snapshots'
         os.makedirs(temp_dir, exist_ok=True)
         local_snapshot = os.path.join(temp_dir, os.path.basename(latest_blob.name)).replace('\\', '/')
         
@@ -77,15 +77,17 @@ def setup_vectordb():
         except Exception as e:
             print(f"⚠️  Warning during collection deletion: {e}")
         
-        # 3. Restore snapshot to Qdrant by uploading the file via HTTP
-        print(f"\n📤 Uploading snapshot to Qdrant...")
+        # 3. Restore snapshot to Qdrant using Qdrant's direct recover API
+        print(f"\n📤 Recovering snapshot in Qdrant from shared volume...")
         
         import requests
-        with open(local_snapshot, 'rb') as f:
-            url = f"{QDRANT_URL}/collections/{COLLECTION_NAME}/snapshots/upload"
-            resp = requests.post(url, files={"snapshot": f})
-            if resp.status_code != 200:
-                raise Exception(f"Snapshot upload failed: {resp.status_code} - {resp.text}")
+        url = f"{QDRANT_URL}/collections/{COLLECTION_NAME}/snapshots/recover?wait=true"
+        payload = {
+            "location": f"file:///qdrant/snapshots/{os.path.basename(local_snapshot)}"
+        }
+        resp = requests.put(url, json=payload)
+        if resp.status_code not in [200, 201, 202]:
+            raise Exception(f"Snapshot recovery failed: {resp.status_code} - {resp.text}")
         
         print(f"\n✅ Vector database setup complete!")
         print(f"   Collection: {COLLECTION_NAME}")

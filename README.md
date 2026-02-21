@@ -31,7 +31,14 @@ Init with vectordb installed
 docker compose --profile vectordb-init run --rm vectordb-init
 ```
 
-### For macos
+
+Fully run with MCP, TEI docker and GPU + vectordb init
+
+```
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml --profile mcp-only --profile vectordb-init  up -d
+```
+
+### For MacOS
 
 Embedding service is not compatible with Apple Silicon (M1/M2) due to the base image being x86_64. 
 You should run it independently via 
