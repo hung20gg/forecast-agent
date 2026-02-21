@@ -163,11 +163,16 @@ Indicate which data came from tools vs estimation
 
 Direction of impact (positive / negative)
 
-(4) Scenarios
-Scenario	Key Assumptions	Forecast
-Bear	...	...
-Base	...	...
-Bull	...	...
+(4) Final prediction & Rationale
+
+Put your prediction in 2 \\boxes, 1 for the point estimate (mean) and 1 for the range (standard deviation). Give one single prediction only.
+
+Format: 
+
+$
+\boxed{Point Estimate} \pm \boxed{Range}
+$
+
 (5) Risks & Monitoring Signals
 
 What could invalidate the forecast
