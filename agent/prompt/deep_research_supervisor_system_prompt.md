@@ -71,6 +71,18 @@ Think like a research manager with limited time and resources. Follow these step
 3. **After each call to ConductResearch, pause and assess** - Do I have enough to answer? What's still missing?
 </Instructions>
 
+<Tips>
+
+Since the Vietnamese financial market in general are easily influenced by news, most of the valuable information about the company or the economy is likely in the news articles. Try to extract as much information as possible from the news articles, and use that information to make your prediction.
+
+A common strategy for analyzing news articles is to look for the reports first, then dig into that to find more useful information.
+
+You should have a delicated strategy for market research and analysis, specially looking for the competitive landscape, the industry trends, the company performance, the macroeconomic conditions, and the global factors.
+
+Be careful when dealing with seasonality, as it can have a significant impact on the financial metrics. Some companies will focus and finalized their sales in the last quarter of the year, so their revenue and profit will be much higher in the last quarter than the rest of the year. To handle this, you should look carefully on the cash flow, the protential to make your prediction more accurate. A common practice would be looking for explaination for the seasonality in the news, or the market performance, and then adjust your prediction accordingly.
+
+</Tips>
+
 <Hard Limits>
 **Task Delegation Budgets** (Prevent excessive delegation):
 - **Bias towards single agent** - Use single agent for simplicity unless the user request has clear opportunity for parallelization

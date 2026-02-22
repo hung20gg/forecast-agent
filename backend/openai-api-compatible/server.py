@@ -10,7 +10,10 @@ import yaml
 import uuid
 import time
 import json
+import httpx
 from env_config import load_env_config, get_env
+import time
+import logging
 
 # Load environment configuration
 load_env_config()
@@ -25,6 +28,9 @@ from strategy import get_agent_state, get_agent, get_agent_config
 config_path = Path(__file__).parent / "config.yml"
 with open(config_path, 'r') as f:
     config = yaml.safe_load(f)
+
+if 'current-time' not in config:
+    config['current_time'] = time.strftime("%Y-%m-%d")
 
 app = FastAPI(title="OpenAI-Compatible Agent API", version="1.0.0")
 
@@ -126,6 +132,56 @@ async def list_models(authorization: Optional[str] = Header(None)) -> ModelListR
     
     return ModelListResponse(data=models)
 
+async def forward_to_openai(request: ChatCompletionRequest):
+    """Forward request directly to OpenAI API when no strategy is specified."""
+    openai_api_key = get_env('OPENAI_API_KEY')
+    if not openai_api_key:
+        raise HTTPException(status_code=500, detail="OPENAI_API_KEY is not configured")
+
+    payload = {
+        "model": request.model,
+        "messages": [msg.model_dump() for msg in request.messages],
+        "temperature": request.temperature,
+        "stream": request.stream,
+    }
+    if request.max_tokens is not None:
+        payload["max_tokens"] = request.max_tokens
+
+    headers = {
+        "Authorization": f"Bearer {openai_api_key}",
+        "Content-Type": "application/json",
+    }
+
+    if request.stream:
+        async def _stream_openai():
+            async with httpx.AsyncClient(timeout=120) as client:
+                async with client.stream(
+                    "POST",
+                    "https://api.openai.com/v1/chat/completions",
+                    json=payload,
+                    headers=headers,
+                ) as response:
+                    if response.status_code != 200:
+                        body = await response.aread()
+                        yield f"data: {body.decode()}\n\n"
+                        return
+                    async for line in response.aiter_lines():
+                        if line:
+                            yield f"{line}\n\n"
+
+        return StreamingResponse(_stream_openai(), media_type="text/event-stream")
+    else:
+        async with httpx.AsyncClient(timeout=120) as client:
+            response = await client.post(
+                "https://api.openai.com/v1/chat/completions",
+                json=payload,
+                headers=headers,
+            )
+        if response.status_code != 200:
+            raise HTTPException(status_code=response.status_code, detail=response.text)
+        return JSONResponse(content=response.json())
+
+
 @app.post("/v1/chat/completions")
 async def create_chat_completion(
     request: ChatCompletionRequest,
@@ -136,9 +192,13 @@ async def create_chat_completion(
     
     # Parse model name
     strategy, base_model = parse_model_name(request.model)
-    
+    logging.info(f"Received request for model: {request.model} (strategy: {strategy}, base_model: {base_model})")
+    # Forward directly to OpenAI when no strategy is specified
+    if strategy is None:
+        return await forward_to_openai(request)
+
     # Validate strategy if specified
-    if strategy and strategy not in config['models']:
+    if strategy not in config['models']:
         raise HTTPException(
             status_code=400, 
             detail=f"Unknown strategy: {strategy}. Available: {list(config['models'].keys())}"
@@ -147,16 +207,12 @@ async def create_chat_completion(
     # Prepare agent configuration
     agent_config = {
         "model_name": base_model,
-        "streaming": request.stream
+        "streaming": request.stream,
+        "current_time": config.get('current_time', time.strftime("%Y-%m-%d"))
     }
-    
-    if strategy:
-        agent_config["agent_type"] = strategy
-        state_config = {"agent_type": strategy}
-    else:
-        # Default to react if no strategy specified
-        agent_config["agent_type"] = "react"
-        state_config = {"agent_type": "react"}
+
+    agent_config["agent_type"] = strategy
+    state_config = {"agent_type": strategy}
     
     # Create agent state and add messages (excluding system messages from user)
     state = get_agent_state(**state_config)
@@ -296,6 +352,9 @@ async def complete_non_streaming(agent, state, model: str):
 async def health_check():
     """Health check endpoint."""
     return {"status": "healthy"}
+
+
+
 
 if __name__ == "__main__":
     import uvicorn
