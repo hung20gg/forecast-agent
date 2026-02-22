@@ -165,13 +165,15 @@ Direction of impact (positive / negative)
 
 (4) Final prediction & Rationale
 
-Put your prediction in 2 \\boxes, 1 for the point estimate (mean) and 1 for the range (standard deviation). Give one single prediction only.
+Put your prediction in 2 \\boxes, 1 for the point estimate (mean) and 1 for the margin of error (standard deviation). Give one single prediction only.
 
 Format: 
 
 $
-\boxed{{Point Estimate}} \pm \boxed{{Range}}
+\boxed{{Point Estimate}} \pm \boxed{{Standard Deviation}}
 $
+
+In which the point estimate is your best guess for the most likely outcome, and the standard deviation represents the uncertainty around that estimate. Both values should be numeric and in the same units as the metric being forecasted.
 
 (5) Risks & Monitoring Signals
 

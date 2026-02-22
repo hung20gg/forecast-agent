@@ -54,3 +54,10 @@ This will start the embedding service on port 8080, and you can configure the ba
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.mac.yml --profile full up -d
 ```
+
+
+Rebuilt any service after making changes to the codebase. For example, to rebuild the MCP server:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.mac.yml --profile full build mcp-server
+``````
