@@ -29,7 +29,7 @@ services:
 
   backend:
     profiles: ["full"]
-    image: quanghung20gg/forecast-backend:v0.1
+    image: quanghung20gg/forecast-backend:v0.2
     container_name: forecast-agent-backend
     ports:
       - "${BACKEND_PORT:-8000}:8000"
