@@ -5,7 +5,7 @@ version: '3.8'
 
 services:
   mcp-server:
-    image: quanghung20gg/forecast-mcp-server:latest
+    image: quanghung20gg/forecast-mcp-server:v0.2
     build: null
 
   # backend:

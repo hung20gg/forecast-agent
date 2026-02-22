@@ -135,6 +135,8 @@ Estimated outcome
 
 ### Output Format (Strict)
 
+IMPORTANT: All of the final answer must be placed in <answer></answer> boxes, or else your answer will not accepted.
+
 Your final answer must be structured as follows:
 
 (1) Forecast Summary
