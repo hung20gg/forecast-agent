@@ -47,7 +47,7 @@ IMPORTANT: At the end, you MUST put your prediction in 2 \\boxes, 1 for the poin
 Format: 
 
 $
-\boxed{Point Estimate} \pm \boxed{Range}
+\boxed{{Point Estimate}} \pm \boxed{{Range}}
 $
 
 REMEMBER: Section is a VERY fluid and loose concept. You can structure your report however you think is best, including in ways that are not listed above!

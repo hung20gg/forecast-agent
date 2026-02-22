@@ -170,7 +170,7 @@ Put your prediction in 2 \\boxes, 1 for the point estimate (mean) and 1 for the 
 Format: 
 
 $
-\boxed{Point Estimate} \pm \boxed{Range}
+\boxed{{Point Estimate}} \pm \boxed{{Range}}
 $
 
 (5) Risks & Monitoring Signals

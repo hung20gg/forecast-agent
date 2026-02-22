@@ -27,14 +27,14 @@ Details on Docker Compose configurations and optimizations can be found in the `
 
 Init with vectordb installed
 
-```
+```bash
 docker compose --profile vectordb-init run --rm vectordb-init
 ```
 
 
 Fully run with MCP, TEI docker and GPU + vectordb init
 
-```
+```bash
 docker compose -f docker-compose.yml -f docker-compose.gpu.yml --profile mcp-only --profile vectordb-init  up -d
 ```
 
@@ -45,6 +45,7 @@ You should run it independently via
 
 ```
 model=google/embeddinggemma-300m
+export HF_TOKEN=<your CLI READ token>
 text-embeddings-router --model-id $model --port 8080
 ```
 
