@@ -18,10 +18,10 @@ async def query_stock_value_daily(
     sql = """
         SELECT 
             time,
-            close,
+            close * 1000 AS close,
             volume,
-            EMA20,
-            EMA50
+            EMA20 * 1000 AS EMA20,
+            EMA50 * 1000 AS EMA50
         FROM 
             `ktln.stock_daily`
         WHERE 
@@ -66,10 +66,10 @@ async def query_stock_value_monthly(
     query = f"""
         SELECT 
             time,
-            close,
+            close * 1000 AS close,
             volume,
-            EMA12,
-            EMA26
+            EMA12 * 1000 AS EMA12,
+            EMA26 * 1000 AS EMA26
         FROM 
             `ktln.stock_monthly`
         WHERE 
@@ -105,7 +105,7 @@ def register_tool(mcp, client: Client):
     
     async def get_stock_value(stock_code: str, start_date: str, end_date: str, duration: str) -> str:
         """
-        Fetch stock value from BigQuery for the given stock symbol and date range.
+        Fetch stock value from BigQuery for the given stock symbol and date range. The unit is VND
         
         Args:
             stock_code: Stock symbol to query. e.g., 'VIC', 'VHM'
