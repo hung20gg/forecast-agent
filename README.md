@@ -35,13 +35,13 @@ docker compose --profile vectordb-init run --rm vectordb-init
 Fully run with MCP, TEI docker and GPU + vectordb init
 
 ```bash
-docker compose -f docker-compose.gpu.yml --profile mcp-only --profile vectordb-init  up -d
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml --profile mcp-only --profile vectordb-init  up -d
 ```
 
 Fully run for deployment with GPU + vectordb init
 
 ```bash
-docker compose -f docker-compose.gpu.yml --profile full --profile vectordb-init  up -d
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml --profile full --profile vectordb-init  up -d
 ```
 
 
@@ -51,13 +51,13 @@ To rebuild any service after making changes to the codebase.
 Use the docker-compose.dev.yml file which maps the local code into the container for hot-reloading.
 
 ```bash
-docker compose -f docker-compose.dev.yml --profile full build mcp-server
+docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile full build mcp-server
 ```
 
 Then restart the service:
 
 ```bash
-docker compose -f docker-compose.dev.yml --profile full up -d
+docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile full up -d
 ```
 
 ### For MacOS
@@ -78,8 +78,3 @@ docker compose -f docker-compose.yml -f docker-compose.mac.yml --profile full up
 ```
 
 
-Rebuilt any service after making changes to the codebase. For example, to rebuild the MCP server:
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.mac.yml --profile full build mcp-server
-``````
