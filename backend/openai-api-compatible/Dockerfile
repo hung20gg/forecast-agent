@@ -57,7 +57,7 @@ COPY --chown=appuser:appuser backend/openai-api-compatible/ .
 
 # Update PATH for user-installed packages
 ENV PATH=/home/appuser/.local/bin:$PATH
-ENV PYTHONPATH=/app/agent:$PYTHONPATH
+ENV PYTHONPATH=/app/agent
 
 # Switch to non-root user
 USER appuser

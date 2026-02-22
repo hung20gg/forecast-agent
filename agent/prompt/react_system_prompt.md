@@ -167,6 +167,8 @@ Confidence level (low / medium / high, or %):
 
 Bullet points of data sources and time coverage
 
+Major news or events considered that impact the forecast
+
 Indicate which data came from tools vs estimation
 
 (3) Main Drivers
