@@ -78,3 +78,9 @@ docker compose -f docker-compose.yml -f docker-compose.mac.yml --profile full up
 ```
 
 
+DEV in mac
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.mac.yml --profile full build mcp-server
+```
+
