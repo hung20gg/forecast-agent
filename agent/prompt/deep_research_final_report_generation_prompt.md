@@ -1,3 +1,4 @@
+## Deep Research Final Report Generation Prompt
 Based on all the research conducted, create a comprehensive, well-structured answer to the overall research brief:
 
 For more context, here is all of the messages so far. Focus on the research brief above, but consider these messages as well for more context.
@@ -8,7 +9,7 @@ This is critical. The user will only understand the answer if it is written in t
 
 Today's date is {current_time}.
 
-
+## Output structure
 Please create a detailed answer to the overall research brief that:
 1. Is well-organized with proper headings (# for title, ## for sections, ### for subsections)
 2. Includes specific facts and insights from the research
@@ -42,17 +43,23 @@ To answer a question that asks you to summarize a topic, give a report, or give 
 If you think you can answer the question with a single section, you can do that too!
 1/ answer
 
-IMPORTANT: At the end, you MUST put your prediction in 2 \\boxes, 1 for the point estimate (mean) and 1 for the range (standard deviation). Give one single prediction only.
+REMEMBER: Section is a VERY fluid and loose concept. You can structure your report however you think is best, including in ways that are not listed above!
+Make sure that your sections are cohesive, and make sense for the reader.
+
+## Strict Output format
+IMPORTANT: Regardless of the structure, you must follow these rules, or else your answer will not accepted
+
+1. All of the final answer must be placed in <answer></answer> box
+
+2. At the end, you MUST put your prediction in 2 \boxes{}, 1 for the point estimate (mean) and 1 for the range (standard deviation). Give one single prediction only.
 
 Format: 
 
 $
-\boxed{{Point Estimate}} \pm \boxed{{Range}}
+\boxed{Point Estimate} \pm \boxed{Range}
 $
 
-REMEMBER: Section is a VERY fluid and loose concept. You can structure your report however you think is best, including in ways that are not listed above!
-Make sure that your sections are cohesive, and make sense for the reader.
-
+## Note:
 For each section of the report, do the following:
 - Use simple, clear language
 - Use ## for section title (Markdown format) for each section of the report

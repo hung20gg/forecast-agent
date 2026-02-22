@@ -199,3 +199,19 @@ To add new strategies:
 ## License
 
 See main project LICENSE
+
+
+
+BUILDING
+CD back to the root directory to build the Docker image for the backend server:
+
+```bash
+cd /Users/quanghung20gg/code/wtf
+
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  -f backend/openai-api-compatible/Dockerfile \
+  -t quanghung20gg/forecast-backend:v0.1 \
+  . \
+  --push
+```

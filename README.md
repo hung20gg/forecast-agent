@@ -38,6 +38,28 @@ Fully run with MCP, TEI docker and GPU + vectordb init
 docker compose -f docker-compose.yml -f docker-compose.gpu.yml --profile mcp-only --profile vectordb-init  up -d
 ```
 
+Fully run for deployment with GPU + vectordb init
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml --profile full --profile vectordb-init  up -d
+```
+
+
+### For Development
+To rebuild any service after making changes to the codebase.
+
+Use the docker-compose.dev.yml file which maps the local code into the container for hot-reloading.
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile full build mcp-server
+```
+
+Then restart the service:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile full up -d
+```
+
 ### For MacOS
 
 Embedding service is not compatible with Apple Silicon (M1/M2) due to the base image being x86_64. 
@@ -54,3 +76,5 @@ This will start the embedding service on port 8080, and you can configure the ba
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.mac.yml --profile full up -d
 ```
+
+

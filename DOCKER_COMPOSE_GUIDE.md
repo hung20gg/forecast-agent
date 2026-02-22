@@ -2,6 +2,12 @@
 
 This project uses Docker Compose with profiles and override files to support 6 different deployment configurations.
 
+## Up-down
+
+```bash
+docker compose -p forecast-agent down
+```
+
 ## Available Configurations
 
 ### 1. **Full Stack - CPU** (Default for development)
@@ -52,81 +58,3 @@ Includes: MCP services with macOS-specific networking
 - **`full`** - Complete stack: MCP Server + Backend + Frontend + Qdrant + Embedding
 - **`mcp-only`** - Minimal stack: MCP Server + Qdrant + Embedding (no backend/frontend)
 - **`vectordb-init`** - One-time initialization service for vector database
-
-## Common Commands
-
-### Start services in detached mode
-```bash
-docker compose --profile full up -d
-```
-
-### View logs
-```bash
-docker compose logs -f
-docker compose logs -f mcp-server  # specific service
-```
-
-### Stop services
-```bash
-docker compose down
-```
-
-### Rebuild after changes
-```bash
-docker compose --profile full up --build
-```
-
-### Production deployment (no dev overrides)
-```bash
-docker compose -f docker-compose.yml --profile full up
-```
-
-### Initialize vector database (one-time)
-```bash
-docker compose --profile vectordb-init up vectordb-init
-```
-
-## Environment Variables
-
-Create a `.env` file in the project root:
-
-```bash
-# GCP Configuration
-GCP_PROJECT_ID=your-project-id
-
-# API Keys
-OPENAI_API_KEY=sk-...
-NVIDIA_API_KEY=nvapi-...
-GROQ_API_KEY=gsk_...
-BACKEND_API_KEY=your-backend-key
-HF_TOKEN=hf_...
-
-# Ports
-MCP_SERVER_PORT=9003
-BACKEND_PORT=8000
-FRONTEND_PORT=3000
-
-# Model Configuration
-EMBEDDING_MODEL_ID=google/embeddinggemma-300m
-
-# Vector DB Initialization
-GCS_BUCKET_NAME=your-bucket
-COLLECTION_NAME=financial-data
-```
-
-## Tips
-
-- **docker-compose.override.yml** is automatically loaded. To skip it, use:
-  ```bash
-  docker compose -f docker-compose.yml --profile full up
-  ```
-
-- Combine multiple override files:
-  ```bash
-  docker compose -f docker-compose.yml -f docker-compose.gpu.yml -f custom.yml --profile full up
-  ```
-
-- Check which services will start:
-  ```bash
-  docker compose --profile full config --services
-  ```
