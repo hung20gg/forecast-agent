@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  mcp-server:
+    build:
+      context: ./mcp-server
+      dockerfile: Dockerfile
+    volumes:
+      - ./keys:/app/keys:ro
+      - ./mcp-server/src:/app/src
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/openai-api-compatible/Dockerfile
+      args:
+        - LLM_REPO_URL=${LLM_REPO_URL:-}
+    volumes:
+      - ./backend/openai-api-compatible:/app/backend/openai-api-compatible
+      - ./agent:/app/agent
+
+  vectordb-init:
+    build:
+      context: ./scripts
+      dockerfile: Dockerfile.vectordb-init

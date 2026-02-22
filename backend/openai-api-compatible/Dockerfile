@@ -21,7 +21,8 @@ RUN pip install --no-cache-dir --user -r /build/agent-requirements.txt && \
 
 # Clone LLM repository if needed
 ARG LLM_REPO_URL="https://github.com/hung20gg/llm.git"
-RUN if [ -n "$LLM_REPO_URL" ]; then \
+RUN mkdir -p /build/llm && \
+    if [ -n "$LLM_REPO_URL" ]; then \
         git clone "$LLM_REPO_URL" /build/llm; \
     fi
 
@@ -45,17 +46,18 @@ WORKDIR /app/backend/openai-api-compatible
 # Copy installed Python packages from builder
 COPY --from=builder --chown=appuser:appuser /root/.local /home/appuser/.local
 
-# Copy LLM repository if it was cloned
-COPY --from=builder /build/llm /app/agent/llm
-
 # Copy agent code
 COPY --chown=appuser:appuser agent/ /app/agent/
+
+# Copy LLM repository if it was cloned (overwrites local llm/ with cloned version)
+COPY --from=builder /build/llm /app/agent/llm
 
 # Copy backend code
 COPY --chown=appuser:appuser backend/openai-api-compatible/ .
 
 # Update PATH for user-installed packages
 ENV PATH=/home/appuser/.local/bin:$PATH
+ENV PYTHONPATH=/app/agent:$PYTHONPATH
 
 # Switch to non-root user
 USER appuser

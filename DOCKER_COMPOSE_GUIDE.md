@@ -12,13 +12,13 @@ Includes: MCP Server, Backend API, Frontend UI, Qdrant, Text Embedding (CPU)
 
 ### 2. **Full Stack - GPU**
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.gpu.yml --profile full up -d
+docker compose -f docker-compose.gpu.yml --profile full up -d
 ```
 Includes: All services with NVIDIA GPU acceleration
 
 ### 3. **Full Stack - macOS**
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.mac.yml --profile full up -d
+docker compose -f docker-compose.mac.yml --profile full up -d
 ```
 Includes: All services with macOS-specific networking (host.docker.internal)
 
@@ -30,13 +30,13 @@ Includes: MCP Server, Qdrant, Text Embedding (CPU)
 
 ### 5. **MCP Server Only - GPU**
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.gpu.yml --profile mcp-only up -d
+docker compose -f docker-compose.gpu.yml --profile mcp-only up -d
 ```
 Includes: MCP services with NVIDIA GPU acceleration
 
 ### 6. **MCP Server Only - macOS**
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.mac.yml --profile mcp-only up -d
+docker compose -f docker-compose.mac.yml --profile mcp-only up -d
 ```
 Includes: MCP services with macOS-specific networking
 
