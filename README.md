@@ -20,7 +20,7 @@ Edit the `.env` file to set your API keys and configurations.
 Start all services with Docker Compose (CPU version):
 
 ```bash
-docker-compose up -d
+docker compose --profile full up -d
 ```
 
 Details on Docker Compose configurations and optimizations can be found in the `DOCKER_COMPOSE_GUIDE.md` and `DOCKER_OPTIMIZATION.md` files.

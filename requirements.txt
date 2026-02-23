@@ -1,0 +1,14 @@
+langgraph
+openai
+google-genai
+pillow
+fastmcp
+numpy
+weave
+uvicorn
+pydantic
+pyyaml
+httpx
+datasets
+transformers
+pyarrow

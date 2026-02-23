@@ -23,22 +23,22 @@ from ..utils import (
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
-with open(os.path.join(CURRENT_DIR, '..', "..", "prompt", "deep_research_clarify_with_user_prompt.md"), "r") as file:
+with open(os.path.join(CURRENT_DIR, '..', "..", "prompt", "deep_research_clarify_with_user_prompt.md"), "r", encoding="utf-8") as file:
     DEFAULT_CLARIFY_PROMPT = file.read()
 
-with open(os.path.join(CURRENT_DIR, '..', "..", "prompt", "deep_research_write_research_brief_prompt.md"), "r") as file:
+with open(os.path.join(CURRENT_DIR, '..', "..", "prompt", "deep_research_write_research_brief_prompt.md"), "r", encoding="utf-8") as file:
     DEFAULT_RESEARCH_BRIEF_PROMPT = file.read()
 
-with open(os.path.join(CURRENT_DIR, '..', "..", "prompt", "deep_research_researcher_system_prompt.md"), "r") as file:
+with open(os.path.join(CURRENT_DIR, '..', "..", "prompt", "deep_research_researcher_system_prompt.md"), "r", encoding="utf-8") as file:
     DEFAULT_RESEARCHER_SYSTEM_PROMPT = file.read()
 
-with open(os.path.join(CURRENT_DIR, '..', "..", "prompt", "deep_research_supervisor_system_prompt.md"), "r") as file:
+with open(os.path.join(CURRENT_DIR, '..', "..", "prompt", "deep_research_supervisor_system_prompt.md"), "r", encoding="utf-8") as file:
     DEFAULT_SUPERVISOR_SYSTEM_PROMPT = file.read()
 
-with open(os.path.join(CURRENT_DIR, '..', "..", "prompt", "deep_research_researcher_compress_prompt.md"), "r") as file:
+with open(os.path.join(CURRENT_DIR, '..', "..", "prompt", "deep_research_researcher_compress_prompt.md"), "r", encoding="utf-8") as file:
     DEFAULT_RESEARCHER_COMPRESS_PROMPT = file.read()
 
-with open(os.path.join(CURRENT_DIR, '..', "..", "prompt", "deep_research_final_report_generation_prompt.md"), "r") as file:
+with open(os.path.join(CURRENT_DIR, '..', "..", "prompt", "deep_research_final_report_generation_prompt.md"), "r", encoding="utf-8") as file:
     DEFAULT_FINAL_REPORT_PROMPT = file.read()
 
 
