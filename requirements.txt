@@ -12,3 +12,9 @@ httpx
 datasets
 transformers
 pyarrow
+google-cloud-storage
+qdrant-client
+tabulate
+fastmcp
+python-dotenv
+google-cloud-bigquery
