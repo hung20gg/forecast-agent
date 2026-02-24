@@ -27,7 +27,7 @@ Interest rates, inflation, economic growth, employment, and government policy.
 
 2. Industry & Company Performance
 
-Sector trends, major companies in the index, earnings outlook, and competitive landscape.
+Sector trends, major companies in the index, earnings outlook, and competitive landscape. Giving multiple theories and predictions of future market, analyze and choose the most reasonable one.
 
 3. Cross-Sector & Capital Flows
 
@@ -45,7 +45,7 @@ Investor sentiment, derivatives positioning, liquidity, earnings releases, and p
 
 Since the Vietnamese financial market in general are easily influenced by news, most of the valuable information about the company or the economy is likely in the news articles. Try to extract as much information as possible from the news articles, and use that information to make your prediction.
 
-A common strategy for analyzing news articles is to look for the reports first, then dig into that to find more useful information.
+A common strategy for analyzing news articles is to look for the reports first, then dig into that to find more useful information. Base on what you can gather, develop your theories, predictions, argue and verify them.
 
 You should have a delicated strategy for market research and analysis, specially looking for the competitive landscape, the industry trends, the company performance, the macroeconomic conditions, and the global factors.
 

@@ -44,6 +44,7 @@ class ResearcherState(AgentState):
     task_id: Optional[str] = None
     research_task: Optional[str] = None
     compressed_research: Optional[str] = None
+    tool_notice: str = ""
 
     def to_tool_response(self) -> Dict[str, Any]:
         return {
@@ -55,6 +56,7 @@ class ResearcherState(AgentState):
 class OpenDeepResearchState(AgentState):
     
     is_question_clarified: bool = False
+    global_tool_notice: str = ""
     clarified_counter: int = 0
     is_research_complete: bool = False
     research_briefs: List[str] = field(default_factory=list)

@@ -59,8 +59,8 @@ def compute_score(solution_strs, ground_truths, alpha = 1):
     if mean is None or std is None:
         return {
             "tool_call_score": tool_call_score,
-            "nll_score": 0.0,
-            "total_score": 0.0,
+            "nll_score": -1,
+            "total_score": -1,
             "error": "Failed to extract numerical answer"
         }
     
@@ -68,7 +68,7 @@ def compute_score(solution_strs, ground_truths, alpha = 1):
     gt_std = ground_truths['std']
 
     
-    nll_score = max(alpha * nll_exclude_min(mean, std, gt_mean, gt_std) + 1, -10)
+    nll_score = max(alpha * nll_exclude_min(mean, std, gt_mean, gt_std) + 1, -1)
 
     total_score = tool_call_score - nll_score
     

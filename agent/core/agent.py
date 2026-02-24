@@ -126,6 +126,7 @@ class BaseAgentMCP(Generic[StateT, ConfigT]):
 
         tool_messages = await self._tool_execute(state.messages[-1].get("tool_calls", []))
         state.messages.extend(tool_messages)
+        state.num_tools_calls += len(tool_messages)
         return state
     
 
