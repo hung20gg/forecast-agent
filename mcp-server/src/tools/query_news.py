@@ -51,6 +51,7 @@ async def query_news_from_vectordb(
     user_query: str,
     start_date: str,
     end_date: str,
+    limit: int = 5
 ) -> Optional[str]:
     """Query news using vector similarity search."""
     try:
@@ -68,7 +69,8 @@ async def query_news_from_vectordb(
             collection_name=collection_name,
             query=user_query,
             start_date=start_ts,
-            end_date=end_ts
+            end_date=end_ts,
+            limit=limit
         )
         
         if not results:
@@ -145,6 +147,7 @@ async def query_news(
     user_query: str,
     start_date: str,
     end_date: str,
+    limit: int = 5,
     channel: Optional[str] = None
 ) -> str:
     
@@ -167,7 +170,7 @@ async def query_news(
         AND pub_date BETWEEN @start_date AND @end_date
         AND channel_name = @channel
         ORDER BY score DESC, pub_date DESC
-        LIMIT 10
+        LIMIT @limit
     """
     else:
     
@@ -187,7 +190,7 @@ async def query_news(
             WHERE SEARCH((title, text), @q)
             AND pub_date BETWEEN @start_date AND @end_date
             ORDER BY score DESC, pub_date DESC
-            LIMIT 10
+            LIMIT @limit
         """
     try:
         job_config = bigquery.QueryJobConfig(
@@ -195,6 +198,7 @@ async def query_news(
                 bigquery.ScalarQueryParameter("q", "STRING", user_query),
                 bigquery.ScalarQueryParameter("start_date", "STRING", start_date),
                 bigquery.ScalarQueryParameter("end_date", "STRING", end_date),
+                bigquery.ScalarQueryParameter("limit", "INT64", limit),
                 # bigquery.ScalarQueryParameter("channel", "STRING", channel) if channel else None,
             ]
         )
@@ -221,30 +225,31 @@ def register_tool(mcp, client: Client):
     # Initialize Qdrant client
 
     @mcp.tool()
-    async def query_relevant_news(query: str, start_date: str, end_date: str, channel: Optional[str] = None) -> str:
+    async def query_relevant_news(query: str, start_date: str, end_date: str, channel: Optional[str] = None, limit: int = 5) -> str:
         """
         Fetch relevant news articles based on query, date range, and optional channel filter.
         Uses vector similarity search if available, otherwise falls back to full-text search.
-        Results are truncated to 750 characters. Use read_full_article to get complete content.
+        Results are truncated to 750 characters. Use read_full_article to get complete content of the article.
         
         Args:
             query: Search query string
             start_date: Start date in 'YYYY-MM-DD' format
             end_date: End date in 'YYYY-MM-DD' format
             channel: Optional channel name filter
+            limit: Maximum number of articles to return. Recommend 5 for seach detail, 10 for seach overview
         Returns:
             JSON array of news articles (truncated to 750 chars) or error message
         """
         # Try vector search first if available
         if client.qdrant_client.test_connection():
-            result = await query_news_from_vectordb(client, query, start_date, end_date)
+            result = await query_news_from_vectordb(client, query, start_date, end_date, limit)
             if result is not None:
                 return result
             # If vector search fails, fall back to BigQuery
             logger.warning("Vector search failed, falling back to BigQuery")
         
         # Fallback to BigQuery full-text search
-        return await query_news(client, query, start_date, end_date, channel)
+        return await query_news(client, query, start_date, end_date, channel, limit)
     
     @mcp.tool()
     async def read_full_article(url: str) -> str:

@@ -23,22 +23,22 @@ from ..utils import (
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
-with open(os.path.join(CURRENT_DIR, '..', "..", "prompt", "deep_research_clarify_with_user_prompt.md"), "r") as file:
+with open(os.path.join(CURRENT_DIR, '..', "..", "prompt", "deep_research_clarify_with_user_prompt.md"), "r", encoding="utf-8") as file:
     DEFAULT_CLARIFY_PROMPT = file.read()
 
-with open(os.path.join(CURRENT_DIR, '..', "..", "prompt", "deep_research_write_research_brief_prompt.md"), "r") as file:
+with open(os.path.join(CURRENT_DIR, '..', "..", "prompt", "deep_research_write_research_brief_prompt.md"), "r", encoding="utf-8") as file:
     DEFAULT_RESEARCH_BRIEF_PROMPT = file.read()
 
-with open(os.path.join(CURRENT_DIR, '..', "..", "prompt", "deep_research_researcher_system_prompt.md"), "r") as file:
+with open(os.path.join(CURRENT_DIR, '..', "..", "prompt", "deep_research_researcher_system_prompt.md"), "r", encoding="utf-8") as file:
     DEFAULT_RESEARCHER_SYSTEM_PROMPT = file.read()
 
-with open(os.path.join(CURRENT_DIR, '..', "..", "prompt", "deep_research_supervisor_system_prompt.md"), "r") as file:
+with open(os.path.join(CURRENT_DIR, '..', "..", "prompt", "deep_research_supervisor_system_prompt.md"), "r", encoding="utf-8") as file:
     DEFAULT_SUPERVISOR_SYSTEM_PROMPT = file.read()
 
-with open(os.path.join(CURRENT_DIR, '..', "..", "prompt", "deep_research_researcher_compress_prompt.md"), "r") as file:
+with open(os.path.join(CURRENT_DIR, '..', "..", "prompt", "deep_research_researcher_compress_prompt.md"), "r", encoding="utf-8") as file:
     DEFAULT_RESEARCHER_COMPRESS_PROMPT = file.read()
 
-with open(os.path.join(CURRENT_DIR, '..', "..", "prompt", "deep_research_final_report_generation_prompt.md"), "r") as file:
+with open(os.path.join(CURRENT_DIR, '..', "..", "prompt", "deep_research_final_report_generation_prompt.md"), "r", encoding="utf-8") as file:
     DEFAULT_FINAL_REPORT_PROMPT = file.read()
 
 
@@ -73,7 +73,8 @@ class ResearcherAgent(BaseAgentMCP[ResearcherState, ResearcherAgentConfig]):
             state.messages.append({
                 "role": "system",
                 "content": self.config.researcher_system_prompt.format(
-                    current_time=self.config.current_time
+                    current_time=self.config.current_time,
+                    tool_notice=state.tool_notice
                 )
             })
             state.messages.append({
@@ -92,6 +93,23 @@ class ResearcherAgent(BaseAgentMCP[ResearcherState, ResearcherAgentConfig]):
         
         flatten_conv = flatten_messages(state.messages)
 
+        if state.messages[0]["role"] == "system":
+            flatten_conv_for_tool_notice = flatten_messages(state.messages[1:-1])
+        else:
+            flatten_conv_for_tool_notice = flatten_messages(state.messages[:-1])
+
+        tool_notice_prompt = """
+        You are an agent specialized in updating tool notice for researcher agent.
+
+        Here is the previous tool notice: {tool_notice}
+        
+        You should ignore most of the research content and focus solely on the tool calling. The system might face trouble with the tool calling and require multiple iterations to call the tool correctly, 
+        so you need to update the tool notice to help the system call the tool correctly.
+        
+        Return the updated tool notice only. DO NOT repeat the previous tool notice. DO NOT ADD ANY EXTRA INFORMATION.
+        
+        """
+
         summarize_messages = [
             {
                 "role": "system",
@@ -104,12 +122,28 @@ class ResearcherAgent(BaseAgentMCP[ResearcherState, ResearcherAgentConfig]):
                 "content": flatten_conv
             }
         ]
-        
-        response = await self.llm.ainvoke(summarize_messages)
 
-        state.compressed_research = response
+        update_tool_notice_messages = [
+            {
+                "role": "system",
+                "content": tool_notice_prompt.format(
+                    tool_notice=state.tool_notice
+                )
+            },
+            {
+                "role": "user",
+                "content": flatten_conv_for_tool_notice
+            }
+        ]
+        
+        compressed_research, update_tool_notice = await asyncio.gather(
+            self.llm.ainvoke(summarize_messages),
+            self.llm.ainvoke(update_tool_notice_messages),
+        )
+        state.compressed_research = compressed_research
+        state.tool_notice += "\n" + update_tool_notice
         return state
-    
+
     def build_graph(self) -> StateGraph:
         
         workflow = StateGraph(ResearcherState)
@@ -123,12 +157,12 @@ class ResearcherAgent(BaseAgentMCP[ResearcherState, ResearcherAgentConfig]):
             "conduct_research",
             self.is_tool_calling_finished,
             {
-                'end': 'compress_research',
+                'end': "compress_research", # fan-out
                 'continue': 'researcher_tool_execute'
             }
         )
         workflow.add_edge("researcher_tool_execute","conduct_research")
-
+        
         workflow.add_edge("compress_research", END)
         graph = workflow.compile()
 
@@ -340,6 +374,7 @@ class OpenDeepResearchAgent(BaseAgentMCP[OpenDeepResearchState, OpenDeepResearch
                 research_task_state = ResearcherState(
                     task_id = tool_id,
                     research_task = arguments.get("research_task", ""),
+                    tool_notice = state.global_tool_notice
                 )
                 research_task_states.append(research_task_state)
 
@@ -363,6 +398,16 @@ class OpenDeepResearchAgent(BaseAgentMCP[OpenDeepResearchState, OpenDeepResearch
         ]
 
         state.supervisor_messages.extend(research_tool_responses + overflow_tool_responses)          
+
+        # Update tool notice
+        max_tool_call = 0
+        update_tool_notice = ""
+        for research_state in research_results:
+            if research_state.num_tool_calls > max_tool_call:
+                max_tool_call = research_state.num_tool_calls
+                update_tool_notice = research_state.tool_notice
+        
+        state.global_tool_notice = update_tool_notice
 
         return state    
         

@@ -9,3 +9,4 @@ class AgentState:
     user_request: str = ""
     messages: List[Dict[str, Any]] = field(default_factory=list)
     number_of_steps: int = 0
+    num_tools_calls: int = 0

@@ -208,7 +208,8 @@ async def create_chat_completion(
     agent_config = {
         "model_name": base_model,
         "streaming": request.stream,
-        "current_time": config.get('current_time', time.strftime("%Y-%m-%d"))
+        "current_time": config.get('current_time', time.strftime("%Y-%m-%d")),
+        "max_tool_calls": config['models'][strategy].get('max_tool_calls', 10)
     }
 
     agent_config["agent_type"] = strategy

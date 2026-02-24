@@ -7,6 +7,7 @@ import calendar
 from google.cloud import bigquery
 import math
 import os
+from uuid import uuid4
 
 # BigQuery Setup
 KEY_PATH = '../data_collection/keys/big-query.json'
@@ -307,12 +308,10 @@ def format_huggingface(item, split, idx):
     extra = {
         "split": split,
         "index": idx,
-        "answer": item["answer_raw"],
-        "expected": item["answer_raw"],
-        "question": item["question_raw"],
         "time_asked": item["time_asked"],
         "gap": item["gap"],
-        "question_type": item["type"]
+        "question_type": item["type"],
+        "id": str(uuid4())
     }
     if item["std"] is not None:
         extra["std"] = item["std"]

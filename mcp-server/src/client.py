@@ -73,7 +73,7 @@ class Qdrant:
             logger.error(f"Connection test failed: {e}")
             return False
     
-    def query(self, collection_name: str, query: str, start_date: Optional[int] = None, end_date: Optional[int] = None):
+    def query(self, collection_name: str, query: str, start_date: Optional[int] = None, end_date: Optional[int] = None, limit: int = 5):
         """Execute a query against the Qdrant collection."""
         query_filter = None
         vector = get_embedding(query)
@@ -102,7 +102,7 @@ class Qdrant:
             collection_name=collection_name,
             query=vector,
             query_filter=query_filter,
-            limit=5,
+            limit=limit,
         )
         
         # Convert results to JSON format

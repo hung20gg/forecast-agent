@@ -58,4 +58,8 @@ You should have a delicated strategy for market research and analysis, specially
 
 Be careful when dealing with seasonality, as it can have a significant impact on the financial metrics. Some companies will focus and finalized their sales in the last quarter of the year, so their revenue and profit will be much higher in the last quarter than the rest of the year. To handle this, you should look carefully on the cash flow, the protential to make your prediction more accurate. A common practice would be looking for explaination for the seasonality in the news, or the market performance, and then adjust your prediction accordingly.
 
+<Notice on Tool Usage>
+{tool_notice}
+</Notice on Tool Usage>
+
 </Tips>

@@ -6,6 +6,7 @@ models:
   react:
     strategy: "react"
     description: "ReAct agent strategy for reasoning and acting"
+    max_tool_calls: 15
   
   researcher:
     strategy: "researcher"

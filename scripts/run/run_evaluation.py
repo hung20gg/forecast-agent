@@ -1,0 +1,218 @@
+from transformers import AutoTokenizer
+import argparse
+import asyncio
+import json
+import os
+import sys
+from pathlib import Path
+import datasets
+from typing import Any, Dict, List, Union
+
+
+from reward_function import compute_score
+from env_config import load_env_config, get_env
+# Load environment configuration
+load_env_config()
+
+# Add agent path to sys.path
+agent_path = Path(__file__).parent.parent.parent / "agent"
+sys.path.insert(0, str(agent_path))
+
+from strategy import get_agent_state, get_agent, get_agent_config
+
+model_id = "Qwen/Qwen3-4B"
+tokenizer = AutoTokenizer.from_pretrained(model_id, use_fast=True)
+
+OpenAIMessage = Dict[str, Any]
+HFMessage = Dict[str, str]
+
+def flatten_openai_messages(messages: List[OpenAIMessage]) -> List[HFMessage]:
+    """
+    Convert OpenAI 'content as list of blocks' into HF 'content as str'.
+    - Keeps roles: system/user/assistant/tool
+    - For content blocks: concatenates only text blocks.
+    - If content is already a string, keeps it.
+    """
+    out: List[HFMessage] = []
+
+    for m in messages:
+        role = m.get("role")
+        content = m.get("content", "")
+
+        # Case 1: already a string
+        if isinstance(content, str):
+            text = content
+
+        # Case 2: OpenAI blocks: [{"type":"text","text":"..."}, ...]
+        elif isinstance(content, list):
+            parts = []
+            for blk in content:
+                if isinstance(blk, dict) and blk.get("type") == "text":
+                    parts.append(blk.get("text", ""))
+                # If you have images/audio/etc, either skip or add a placeholder:
+                # elif blk.get("type") == "image_url": parts.append("[image]")
+            text = "".join(parts)
+
+        # Fallback
+        else:
+            text = str(content)
+
+        # HF templates usually want role + string content
+        out.append({"role": role, "content": text})
+
+    return out
+
+
+def initialize_agent(agent_type: str, base_model: str, current_time: str):
+    
+    agent_config = {
+        "agent_type": agent_type,
+        "model_name": base_model,
+        "streaming": True,
+        "current_time": current_time,
+        "urls" : ["http://localhost:9003/sse"],
+        "max_tool_calls": 20
+    }
+
+    state_config = {"agent_type": agent_type}
+
+    state = get_agent_state(**state_config)
+    agent_config = get_agent_config(**agent_config)
+
+    agent = get_agent(config=agent_config)
+    
+    return agent, state
+
+
+
+async def run_evaluation(question: dict, output_file: str, args, write_lock: asyncio.Lock):
+    print(question)
+    extra_info = question.get("extra_info", {})
+    current_time = extra_info.get("current_time", "")
+    question_id = extra_info.get("id")
+
+    if question_id is None:
+        return
+    
+    agent, state = initialize_agent(args.agent_type, args.base_model, current_time)
+    await agent.initialize()
+
+    print(json.dumps(question.get("prompt", []), ensure_ascii=False, indent=2))
+
+
+    state.user_request = question.get("prompt", [])[-1].get('content', '')
+
+    update_state = None
+    async for chunk in agent.stream(state, stream_mode="custom"):
+        chunk_type = chunk.get('type')
+        if chunk_type == 'state':
+            update_state = chunk.get('state', update_state)
+
+    if update_state is None:
+        print(f"No state update received for question_id={question_id}")
+        return
+    messages = update_state.messages
+        
+    hf_messages = flatten_openai_messages(messages)
+
+    flatten_messages = tokenizer.apply_chat_template(
+        hf_messages,
+        tokenize=False,
+    )
+
+    ground_truth = question['reward_model'].get("ground_truth", {})
+    try:
+        score = compute_score(
+            flatten_messages,
+            ground_truth
+        )
+    except Exception as exc:
+        
+        print(f"Error computing score for question_id={question_id}: {exc}")
+        
+        score = {
+            "tool_call_score": 0.0,
+            "nll_score": 0.0,
+            "total_score": 0.0,
+            "error": str(exc),
+        }
+
+    async with write_lock:
+        with open(output_file, 'a', encoding='utf-8') as f:
+            f.write(json.dumps({
+                "question_id": question_id,
+                "score": score
+            }) + '\n')
+
+
+def load_processed_questions(output_file: str) -> list[dict]:
+    
+    if not os.path.exists(output_file):
+        return []
+    
+    with open(output_file, 'r', encoding='utf-8') as f:
+        questions = []
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                qid = json.loads(line).get('question_id')
+            except json.JSONDecodeError:
+                continue
+            if qid is not None:
+                questions.append(qid)
+    return questions
+
+
+def load_questions_for_evaluation(dataset_path: str, output_file: str) -> list[dict]:
+
+    processed_questions = load_processed_questions(output_file)
+    
+    # For Hugging Face datasets, we can load directly from the dataset path
+    dataset = datasets.load_dataset(dataset_path, split="test")
+    
+    questions = [
+        question
+        for question in dataset
+        if question.get('extra_info', {}).get('id') not in processed_questions
+    ]
+    
+    print(f"Loaded {len(questions)} questions for evaluation (skipped {len(processed_questions)} already processed)")
+    
+    return questions
+    
+# async def run_evaluation_on_dataset(dataset_path: str, output_file: str, args):
+#     questions = load_questions_for_evaluation(dataset_path, output_file)
+
+#     semaphore = asyncio.Semaphore(args.num_worker)
+#     write_lock = asyncio.Lock()
+
+#     async def sem_run(question):
+#         async with semaphore:
+#             await run_evaluation(question, output_file, args, write_lock)
+
+#     await asyncio.gather(*[sem_run(q) for q in questions])
+    
+async def run_evaluation_on_dataset(dataset_path: str, output_file: str, args):
+    questions = load_questions_for_evaluation(dataset_path, output_file)
+
+    for question in questions:
+        await run_evaluation(question, output_file, args, asyncio.Lock())
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dataset_path", type=str, required=True)
+    parser.add_argument("--output_file", type=str, required=True)
+    parser.add_argument("--agent_type", type=str, default="react")
+    parser.add_argument("--base_model", type=str, required=True)
+    parser.add_argument("--num_worker", type=int, default=1)
+    args = parser.parse_args()
+    asyncio.run(run_evaluation_on_dataset(args.dataset_path, args.output_file, args))
+
+
+    
+
+    
+    
+

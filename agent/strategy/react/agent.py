@@ -11,12 +11,12 @@ from .state import ReActAgentState
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 prompt_path = os.path.join(current_dir, '..', "..", "prompt", "react_system_prompt.md")
-with open(prompt_path, "r") as file:
+with open(prompt_path, "r", encoding="utf-8") as file:
     REACT_SYSTEM_PROMPT = file.read()
 
 class ReActAgentConfig(BaseAgentMCPConfig):
     agent_type: str = "react"
-    max_tool_calls: int = 5
+    max_tool_calls: int = 10
 
 class ReActAgent(BaseAgentMCP[ReActAgentState, ReActAgentConfig]):
     
