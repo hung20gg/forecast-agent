@@ -17,7 +17,9 @@ cp .env.example .env
 
 Edit the `.env` file to set your API keys and configurations.
 
-Start all services with Docker Compose (CPU version):
+Then put the Google Cloud service account JSON key file in file `bigquery.json` in folder `keys`. Path is `forecast-agent/keys/bigquery.json`. This is required for the MCP server to connect to BigQuery.
+
+Now you can start all services with Docker Compose. Start all services with Docker Compose (CPU version):
 
 ```bash
 docker compose --profile full up -d
