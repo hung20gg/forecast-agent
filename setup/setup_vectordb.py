@@ -8,8 +8,10 @@ import sys
 from google.cloud import storage
 from qdrant_client import QdrantClient
 from dotenv import load_dotenv
-# Load environment configuration
-load_dotenv()
+
+# Load environment configuration from parent directory
+env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
+load_dotenv(dotenv_path=env_path)
 
 def setup_vectordb():
     """
