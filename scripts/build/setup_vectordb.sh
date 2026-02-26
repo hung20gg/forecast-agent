@@ -1,7 +1,7 @@
 #!/bin/bash
 echo "=== Initializing Vector DB ==="
 cd setup
-pip install -r requirements.txt
+uv pip install -r requirements.txt
 
 echo "Starting temporary Qdrant server for initialization..."
 if [ -f "../qdrant/qdrant.exe" ]; then

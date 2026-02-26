@@ -19,7 +19,16 @@ echo "=== 3. Initializing Vector DB ==="
 bash scripts/build/setup_vectordb.sh
 
 echo "=== 4. Building Text Embeddings Server ==="
-bash scripts/build/embedding_server_gpu.sh
+if [[ "$(uname -s)" == "Darwin" ]]; then
+    echo "macOS detected -> building mac version"
+    bash scripts/build/embedding_server_mac.sh
+elif command -v nvidia-smi >/dev/null 2>&1 || command -v nvcc >/dev/null 2>&1; then
+    echo "CUDA detected -> building GPU version"
+    bash scripts/build/embedding_server_gpu.sh
+else
+    echo "Error: Unsupported device. Requires macOS or CUDA-capable environment."
+    exit 1
+fi
 
 echo "=== Build Complete ==="
 echo "All components are set up! You can now run the services."
