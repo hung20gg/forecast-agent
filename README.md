@@ -1,4 +1,4 @@
-# Forecase agent
+# Forecast agent
 
 
 This repository contains the Forecast Agent system, which includes a frontend UI, a backend OpenAI-compatible API server, and an MCP server for data storage using BigQuery.
