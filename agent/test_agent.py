@@ -9,7 +9,7 @@ async def test_react():
     agent_config = {
         "agent_type": "react",
         "streaming": True,
-        "model_name": "gpt-4.1-mini",
+        "model_name": "vllm:Qwen/Qwen3-1.7B",
         "urls" : ["http://localhost:9003/sse"],
         "current_time": current_time
     }
@@ -121,4 +121,4 @@ async def test_deep_research():
 
 if __name__ == "__main__":
 
-    asyncio.run(test_researcher())
+    asyncio.run(test_react())

@@ -12,3 +12,9 @@ data/
 .DS_Store
 
 temp/
+
+text-embeddings-inference/
+qdrant/
+qdrant.exe
+
+.env.local
