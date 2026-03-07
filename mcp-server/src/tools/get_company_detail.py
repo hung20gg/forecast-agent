@@ -19,7 +19,7 @@ async def query_company_detail(
             industry,
             exchange
         FROM 
-            `ktln.stock_company_info`
+            `ktln.company_info`
         WHERE 
             stock_code = @stock_symbol
         LIMIT 1
@@ -59,9 +59,9 @@ async def query_similar_companies(
             market_cap,
             exchange
         FROM 
-            `ktln.stock_company_info`
+            `ktln.company_info`
         WHERE 
-            industry = (SELECT industry FROM `ktln.stock_company_info` WHERE stock_code = @stock_symbol)
+            industry = (SELECT industry FROM `ktln.company_info` WHERE stock_code = @stock_symbol)
             AND stock_code != @stock_symbol
         LIMIT 5
         ORDER BY 
