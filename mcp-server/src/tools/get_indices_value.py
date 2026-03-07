@@ -16,9 +16,9 @@ async def query_indices_available(client: Client) -> str:
     results = await client.aexecute_query(query)
     df = pd.DataFrame([dict(row) for row in results])
     if df.empty:
-        return "No indices data found. The indices data might not be available in the database."
+        return "[FAILED] No indices data found. The indices data might not be available in the database."
     
-    return df.to_markdown(index=False)
+    return f"[SUCCESS] Available indices:\n\n {df.to_markdown(index=False)}"
 
 
 async def query_indices_value(
@@ -31,30 +31,48 @@ async def query_indices_value(
     
     end_date = min(end_date, client.limit_time) if client.limit_time else end_date
 
-    if end_date < start_date:
-        logger.warning(f"End date {end_date} is before start date {start_date}.")
-        return "Invalid date range: end date is before start date."
-    
     if start_date > client.limit_time:
         logger.warning(f"Start date {start_date} is after the limit time {client.limit_time}.")
-        return "Invalid date range: start date is after the limit time."
+        raise ValueError("Invalid date range: start date is after the limit time.")
     
-    query = f"""
-        SELECT 
-            index_name,
-            time,
-            close,
-            volume,
-            EMA20,
-            EMA50
-        FROM 
-            `ktln.indices_{duration}`
-        WHERE 
-            index_name = @index_name
-            AND time BETWEEN @start_date AND @end_date
-        ORDER BY 
-            time ASC
-    """
+    if end_date < start_date:
+        logger.warning(f"End date {end_date} is before start date {start_date}.")
+        raise ValueError("Invalid date range: end date is before start date.")
+      
+    if duration == 'daily':
+        query = f"""
+            SELECT 
+                index_name,
+                time,
+                close,
+                volume,
+                EMA20,
+                EMA50
+            FROM 
+                `ktln.indices_daily`
+            WHERE 
+                index_name = @index_name
+                AND time BETWEEN @start_date AND @end_date
+            ORDER BY 
+                time ASC
+        """
+    else:
+        query = f"""
+            SELECT 
+                index_name,
+                time,
+                close,
+                volume,
+                EMA12,
+                EMA26
+            FROM 
+                `ktln.indices_monthly`
+            WHERE 
+                index_name = @index_name
+                AND time BETWEEN @start_date AND @end_date
+            ORDER BY 
+                time ASC
+        """
 
     job_config = bigquery.QueryJobConfig(
         query_parameters=[
@@ -67,12 +85,12 @@ async def query_indices_value(
         results = await client.bigquery_client.aexecute_query(query, job_config=job_config)
         df = pd.DataFrame([dict(row) for row in results])
         if df.empty:
-            return "No data found for the given parameters."
+            return "[FAILED] No data found for the given parameters."
         
-        return df.to_markdown(index=False)
+        return f"[SUCCESS] Index: {index_name}\n\n {df.to_markdown(index=False)}"
     except Exception as e:
         logger.error(f"Error querying stock value: {e}")
-        return f"Error querying stock value: {e}"
+        return f"[FAILED] Error querying stock value: {e}"
 
 
 def register_tool(mcp, client: Client):

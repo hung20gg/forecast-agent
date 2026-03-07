@@ -29,9 +29,9 @@ async def _get_exact_financial_ratio_code(
     results = await client.aexecute_query(sql, job_config=job_config)
     df = pd.DataFrame([dict(row) for row in results])
     if df.empty:
-        return "No ratio found for the given parameters."
+        return "[FAILED] No ratio found for the given parameters."
     
-    return df.to_markdown(index=False)
+    return f"[SUCCESS] Similar ratio codes and names similar to '{query}':\n{df.to_markdown(index=False)}"
 
 
 
@@ -45,13 +45,13 @@ async def _query_financial_ratio(
 ):
     end_date = min(end_date, client.limit_time) if client.limit_time else end_date
 
-    if end_date < start_date:
-        logger.warning(f"End date {end_date} is before start date {start_date}.")
-        return "Invalid date range: end date is before start date."
-    
     if start_date > client.limit_time:
         logger.warning(f"Start date {start_date} is after the limit time {client.limit_time}.")
-        return "Invalid date range: start date is after the limit time."
+        raise ValueError("Invalid date range: start date is after the limit time.")
+    
+    if end_date < start_date:
+        logger.warning(f"End date {end_date} is before start date {start_date}.")
+        raise ValueError("Invalid date range: end date is before start date.")
     
     # Check ratio_code exists
     sql_check = """
@@ -139,7 +139,7 @@ async def _query_financial_ratio(
     if df.empty:
         return "[FAILED] No data found for the given parameters."
     
-    return df.to_markdown(index=False)
+    return f"[SUCCESS] Stock code: {stock_code}\nRatio Code: {ratio_code}\n\n{df.to_markdown(index=False)}"
 
 
 async def _get_exact_financial_statement_account(
@@ -171,7 +171,7 @@ async def _get_exact_financial_statement_account(
     if df.empty:
         return "[FAILED] No category found for the given parameters."
     
-    return df.to_markdown(index=False)
+    return f"[SUCCESS] Similar category codes and names similar to '{query}':\n{df.to_markdown(index=False)}"
 
 
 async def _query_financial_statement(
@@ -182,6 +182,16 @@ async def _query_financial_statement(
     end_date: str,
     duration: str  # "quarter" or "year"
 ):
+    
+    end_date = min(end_date, client.limit_time) if client.limit_time else end_date
+
+    if start_date > client.limit_time:
+        logger.warning(f"Start date {start_date} is after the limit time {client.limit_time}.")
+        raise ValueError("Invalid date range: start date is after the limit time.")
+    
+    if end_date < start_date:
+        logger.warning(f"End date {end_date} is before start date {start_date}.")
+        raise ValueError("Invalid date range: end date is before start date.")
     
     # Check category_code exists
     sql_check = """
@@ -201,7 +211,7 @@ async def _query_financial_statement(
         similarity_result = await _get_exact_financial_statement_account(client, category_code)
         if "[FAILED]" in similarity_result:
             return f"[FAILED] Category code '{category_code}' or similar names do not exist. Please change your query and use the tool 'get_exact_financial_statement_account' to find the correct category code."
-        return f"[FAILED] Category code '{category_code}' does not exist. Here are some similar ratio codes or names that available:\n{similarity_result}"
+        return f"[FAILED] Category code '{category_code}' does not exist. Here are some similar category codes or names that available:\n{similarity_result}"
     
     start_dt = datetime.fromisoformat(start_date)
     end_dt = datetime.fromisoformat(end_date)
@@ -266,7 +276,7 @@ async def _query_financial_statement(
     if df.empty:
         return "[FAILED] No data found for the given parameters."
     
-    return df.to_markdown(index=False)
+    return f"[SUCCESS] Stock code: {stock_code}\nCategory: {category_code}\n\n{df.to_markdown(index=False)}"
 
 
 
@@ -291,7 +301,7 @@ def register_tool(mcp, client: Client):
         ratio_code: str,
         start_date: str,
         end_date: str,
-        duration: str
+        duration: str = 'quarterly'
     ):
         """
         Fetch financial ratio data from BigQuery for the given stock symbol/industry, ratio code, and date range.
@@ -327,7 +337,7 @@ def register_tool(mcp, client: Client):
         category_code: str,
         start_date: str,
         end_date: str,
-        duration: str
+        duration: str = 'quarterly'
     ):
         """
         Fetch financial statement data from BigQuery for the given stock symbol/industry, category code, and date range.

@@ -19,7 +19,7 @@ async def query_company_detail(
             industry,
             exchange
         FROM 
-            `ktln.company_info`
+            `ktln.stock_company_info`
         WHERE 
             stock_code = @stock_symbol
         LIMIT 1
@@ -36,13 +36,13 @@ async def query_company_detail(
         df = pd.DataFrame([dict(row) for row in results])
 
         if df.empty:
-            return "No data found for the given stock symbol."
+            return f"No data found for the given stock symbol '{stock_symbol}'."
 
-        return df.to_markdown(index=False)
+        return f"[SUCCESS] Company Detail for {stock_symbol}:\n\n{df.to_markdown(index=False)}"
 
     except Exception as e:
         logger.error(f"Error querying company detail: {e}")
-        return f"Error querying company detail: {e}"
+        return f"[FAIL] Error querying company detail: {e}"
     
 
 async def query_similar_companies(
@@ -59,9 +59,9 @@ async def query_similar_companies(
             market_cap,
             exchange
         FROM 
-            `ktln.company_info`
+            `ktln.stock_company_info`
         WHERE 
-            industry = (SELECT industry FROM `ktln.company_info` WHERE stock_code = @stock_symbol)
+            industry = (SELECT industry FROM `ktln.stock_company_info` WHERE stock_code = @stock_symbol)
             AND stock_code != @stock_symbol
         LIMIT 5
         ORDER BY 
@@ -79,13 +79,13 @@ async def query_similar_companies(
         df = pd.DataFrame([dict(row) for row in results])
 
         if df.empty:
-            return "No similar companies found for the given stock symbol."
+            return "[FAIL] No similar companies found for the given stock symbol."
 
-        return df.to_markdown(index=False)
+        return f"[SUCCESS] Similar Companies to {stock_symbol}:\n\n{df.to_markdown(index=False)}"
 
     except Exception as e:
         logger.error(f"Error querying similar companies: {e}")
-        return f"Error querying similar companies: {e}"
+        return f"[FAIL] Error querying similar companies: {e}"
     
 
 def register_tool(mcp, client: Client):

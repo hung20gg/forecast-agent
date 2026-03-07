@@ -15,9 +15,9 @@ async def query_commodities_available(client: Client) -> str:
     results = await client.aexecute_query(query)
     df = pd.DataFrame([dict(row) for row in results])
     if df.empty:
-        return "No commodities data found. The commodities data might not be available in the database."
+        return "[FAIL] No commodities data found. The commodities data might not be available in the database."
     
-    return df.to_markdown(index=False)
+    return f"[SUCCESS] Available commodities:\n\n {df.to_markdown(index=False)}"
 
 
 async def query_commodities_value(
@@ -30,29 +30,46 @@ async def query_commodities_value(
     
     end_date = min(end_date, client.limit_time) if client.limit_time else end_date
 
-    if end_date < start_date:
-        logger.warning(f"End date {end_date} is before start date {start_date}.")
-        return "Invalid date range: end date is before start date."
-    
     if start_date > client.limit_time:
         logger.warning(f"Start date {start_date} is after the limit time {client.limit_time}.")
-        return "Invalid date range: start date is after the limit time."
+        raise ValueError("Invalid date range: start date is after the limit time.")
     
-    query = f"""
-        SELECT 
-            time,
-            value,
-            volume,
-            EMA12,
-            EMA26
-        FROM 
-            `ktln.commodities_{duration}`
-        WHERE 
-            indicator_name = @indicator_name
-            AND time BETWEEN @start_date AND @end_date
-        ORDER BY 
-            time ASC
-    """
+    if end_date < start_date:
+        logger.warning(f"End date {end_date} is before start date {start_date}.")
+        raise ValueError("Invalid date range: end date is before start date.")
+    
+    if duration == 'daily':
+        query = f"""
+            SELECT 
+                time,
+                value,
+                volume,
+                EMA20,
+                EMA50
+            FROM 
+                `ktln.commodities_daily`
+            WHERE 
+                indicator_name = @indicator_name
+                AND time BETWEEN @start_date AND @end_date
+            ORDER BY 
+                time ASC
+        """
+    else:
+        query = f"""
+            SELECT 
+                time,
+                value,
+                volume,
+                EMA12,
+                EMA26
+            FROM 
+                `ktln.commodities_monthly`
+            WHERE 
+                indicator_name = @indicator_name
+                AND time BETWEEN @start_date AND @end_date
+            ORDER BY 
+                time ASC
+        """
 
     job_config = bigquery.QueryJobConfig(
         query_parameters=[
@@ -64,9 +81,9 @@ async def query_commodities_value(
     results = await client.aexecute_query(query, job_config=job_config)
     df = pd.DataFrame([dict(row) for row in results])
     if df.empty:
-        return "No data found for the given parameters."
+        return f"[FAIL] No data found for the given parameters of commodity '{commodity_name}'."
     
-    return df.to_markdown(index=False)
+    return f"[SUCCESS] Commodity: {commodity_name}\n\n{df.to_markdown(index=False)}"
 
 
 def register_tool(mcp, client: Client):
