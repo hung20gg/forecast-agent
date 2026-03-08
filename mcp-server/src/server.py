@@ -17,7 +17,7 @@ mcp = FastMCP("Tools for Financal Data Analysis")
 
 credentials_path = os.path.join(current_dir, "..", "keys", "bigquery.json")
 client = Client(
-    bq_credentials_path=credentials_path,
+    # bq_credentials_path=credentials_path,
     bq_project_id=get_env('GCP_PROJECT_ID'),
     limit_time=get_env('LIMIT_TIME')
 )

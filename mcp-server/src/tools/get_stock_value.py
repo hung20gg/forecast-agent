@@ -50,7 +50,7 @@ async def query_stock_value(
                 AVG(EMA12) * 1000 AS EMA12,
                 AVG(EMA26) * 1000 AS EMA26
             FROM 
-                `ktln.stock_daily`
+                `ktln.stock_monthly`
             WHERE 
                 stock_code = @stock_symbol
                 AND time BETWEEN @start_date AND @end_date
