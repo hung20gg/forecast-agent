@@ -28,6 +28,7 @@ def setup_logger(
     
     # Remove existing handlers to avoid duplicates
     logger.handlers.clear()
+    logger.propagate = False
     
     # Create formatter
     formatter = logging.Formatter(

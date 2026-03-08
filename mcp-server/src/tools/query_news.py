@@ -54,6 +54,7 @@ async def query_news_from_vectordb(
     limit: int = 5
 ) -> Optional[str]:
     """Query news using vector similarity search."""
+    logger.info(f"Querying news from vectordb from {start_date} to {end_date} with limit {limit}")
     try:
         # Get embedding for the query
 
@@ -134,6 +135,7 @@ async def get_new_from_url(client: Client, url: str) -> str:
         WHERE url = @url
         LIMIT 1
     """
+    logger.info(f"Querying news by URL: {url}")
     try:
         job_config = bigquery.QueryJobConfig(
             query_parameters=[
@@ -161,7 +163,17 @@ async def query_news(
 ) -> str:
     
     end_date = min(end_date, client.limit_time) if client.limit_time else end_date
+
+    if start_date > client.limit_time:
+        logger.error(f"Start date {start_date} is after the limit time {client.limit_time}.")
+        raise ValueError("Invalid date range: start date is after the limit time.")
     
+    if end_date < start_date:
+        logger.error(f"End date {end_date} is before start date {start_date}.")
+        raise ValueError("Invalid date range: end date is before start date.")
+
+    logger.info(f"Querying news from {start_date} to {end_date} with limit {limit}")
+          
     if channel:
         query = f"""
             

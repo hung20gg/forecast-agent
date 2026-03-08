@@ -17,13 +17,15 @@ async def query_stock_value(
     end_date = min(end_date, client.limit_time) if client.limit_time else end_date
 
     if start_date > client.limit_time:
-        logger.warning(f"Start date {start_date} is after the limit time {client.limit_time}.")
+        logger.error(f"Start date {start_date} is after the limit time {client.limit_time}.")
         raise ValueError("Invalid date range: start date is after the limit time.")
     
     if end_date < start_date:
-        logger.warning(f"End date {end_date} is before start date {start_date}.")
+        logger.error(f"End date {end_date} is before start date {start_date}.")
         raise ValueError("Invalid date range: end date is before start date.")
     
+    logger.info(f"Querying stock value for {stock_symbol} from {start_date} to {end_date} with duration {duration}")
+
     if duration == 'daily':
         sql = f"""
             SELECT 
