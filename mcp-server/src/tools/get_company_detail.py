@@ -32,6 +32,8 @@ async def query_company_detail(
         ]
     )
 
+    logger.info(f"Querying company detail for {stock_symbol}")
+
     try:
         results = await client.bigquery_client.aexecute_query(sql, job_config=job_config)
         rows = []
@@ -40,7 +42,6 @@ async def query_company_detail(
             temp_row['combine_profile'] = temp_row['combine_profile'].replace('\n', '').replace("\xa0", " ").strip()
             rows.append(temp_row)
         df = pd.DataFrame(rows)
-        print(df)
         if df.empty:
             return f"No data found for the given stock symbol '{stock_symbol}'."
 
@@ -81,6 +82,8 @@ async def query_similar_companies(
         ORDER BY 
             issue_share DESC
     """
+
+    logger.info(f"Querying similar companies for {stock_symbol}")
 
     job_config = bigquery.QueryJobConfig(
         query_parameters=[

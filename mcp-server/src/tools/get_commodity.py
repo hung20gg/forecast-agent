@@ -12,12 +12,13 @@ async def query_commodities_available(client: Client) -> str:
         FROM `ktln.commodities_daily`
         ORDER BY indicator_code
     """
+    logger.info(f"Querying available commodities")
     results = await client.aexecute_query(query)
     df = pd.DataFrame([dict(row) for row in results])
     if df.empty:
         return "[FAIL] No commodities data found. The commodities data might not be available in the database."
     
-    return f"[SUCCESS] Available commodities:\n\n {df.to_markdown(index=False)}"
+    return f"[SUCCESS] Available commodities:\n\n{df.to_markdown(index=False)}"
 
 
 async def query_commodities_value(
@@ -28,14 +29,16 @@ async def query_commodities_value(
     duration: str = 'monthly'
 ) -> str:
     
+    logger.info(f"Querying commodities value for {commodity_name} from {start_date} to {end_date} with duration {duration}")
+
     end_date = min(end_date, client.limit_time) if client.limit_time else end_date
 
     if start_date > client.limit_time:
-        logger.warning(f"Start date {start_date} is after the limit time {client.limit_time}.")
+        logger.error(f"Start date {start_date} is after the limit time {client.limit_time}.")
         raise ValueError("Invalid date range: start date is after the limit time.")
     
     if end_date < start_date:
-        logger.warning(f"End date {end_date} is before start date {start_date}.")
+        logger.error(f"End date {end_date} is before start date {start_date}.")
         raise ValueError("Invalid date range: end date is before start date.")
     
     if duration == 'daily':

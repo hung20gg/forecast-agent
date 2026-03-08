@@ -13,12 +13,13 @@ async def query_indices_available(client: Client) -> str:
         FROM `ktln.indices_daily`
         ORDER BY index_name
     """
+    logger.info(f"Querying available indices")
     results = await client.aexecute_query(query)
     df = pd.DataFrame([dict(row) for row in results])
     if df.empty:
         return "[FAILED] No indices data found. The indices data might not be available in the database."
     
-    return f"[SUCCESS] Available indices:\n\n {df.to_markdown(index=False)}"
+    return f"[SUCCESS] Available indices:\n\n{df.to_markdown(index=False)}"
 
 
 async def query_indices_value(
@@ -32,12 +33,14 @@ async def query_indices_value(
     end_date = min(end_date, client.limit_time) if client.limit_time else end_date
 
     if start_date > client.limit_time:
-        logger.warning(f"Start date {start_date} is after the limit time {client.limit_time}.")
+        logger.error(f"Start date {start_date} is after the limit time {client.limit_time}.")
         raise ValueError("Invalid date range: start date is after the limit time.")
     
     if end_date < start_date:
-        logger.warning(f"End date {end_date} is before start date {start_date}.")
+        logger.error(f"End date {end_date} is before start date {start_date}.")
         raise ValueError("Invalid date range: end date is before start date.")
+
+    logger.info(f"Querying indices value for {index_name} from {start_date} to {end_date} with duration {duration}")
       
     if duration == 'daily':
         query = f"""
@@ -87,7 +90,7 @@ async def query_indices_value(
         if df.empty:
             return "[FAILED] No data found for the given parameters."
         
-        return f"[SUCCESS] Index: {index_name}\n\n {df.to_markdown(index=False)}"
+        return f"[SUCCESS] Index: {index_name}\n\n{df.to_markdown(index=False)}"
     except Exception as e:
         logger.error(f"Error querying stock value: {e}")
         return f"[FAILED] Error querying stock value: {e}"

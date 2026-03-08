@@ -37,3 +37,4 @@ htmlcov/
 # Keys (but keep the directory structure)
 keys/*.json
 !keys/.gitkeep
+.log

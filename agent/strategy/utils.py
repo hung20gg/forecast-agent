@@ -64,7 +64,7 @@ def flatten_messages(messages: List[Dict[str, Any]]) -> str:
                 function_name = function.get('name', 'unknown')
                 arguments = function.get('arguments', '{}')
                 
-                flattened_parts.append(f"- **{function_name}** (ID: {tool_id})\n  Arguments: {arguments}\n")
+                flattened_parts.append(f"- **{function_name}** (ID: {tool_id})\n Arguments: {arguments}\n")
             flattened_parts.append("\n")
         
         # Handle tool call ID (for tool response messages)

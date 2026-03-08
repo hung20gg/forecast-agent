@@ -19,6 +19,7 @@ async def _get_exact_financial_ratio_code(
         FROM `neusolution.ktln.financial_ratio_dim`
         WHERE SEARCH((ratio_code, ratio_name), @query);
     """
+    logger.info(f"Querying similar ratio codes and names similar to '{query}'")
 
     job_config = bigquery.QueryJobConfig(
             query_parameters=[
@@ -43,14 +44,15 @@ async def _query_financial_ratio(
     end_date: str,
     duration: str  # "quarter" or "year"
 ):
+    logger.info(f"Querying financial ratio for {stock_code} with ratio code {ratio_code} from {start_date} to {end_date} with duration {duration}")
     end_date = min(end_date, client.limit_time) if client.limit_time else end_date
 
     if start_date > client.limit_time:
-        logger.warning(f"Start date {start_date} is after the limit time {client.limit_time}.")
+        logger.error(f"Start date {start_date} is after the limit time {client.limit_time}.")
         raise ValueError("Invalid date range: start date is after the limit time.")
     
     if end_date < start_date:
-        logger.warning(f"End date {end_date} is before start date {start_date}.")
+        logger.error(f"End date {end_date} is before start date {start_date}.")
         raise ValueError("Invalid date range: end date is before start date.")
     
     # Check ratio_code exists
@@ -160,6 +162,7 @@ async def _get_exact_financial_statement_account(
         ORDER BY score DESC
         LIMIT 10;
     """
+    logger.info(f"Querying similar category codes and names similar to '{query}'")
 
     job_config = bigquery.QueryJobConfig(
         query_parameters=[
@@ -182,15 +185,16 @@ async def _query_financial_statement(
     end_date: str,
     duration: str  # "quarter" or "year"
 ):
+    logger.info(f"Querying financial statement for {stock_code} with category code {category_code} from {start_date} to {end_date} with duration {duration}")
     
     end_date = min(end_date, client.limit_time) if client.limit_time else end_date
 
     if start_date > client.limit_time:
-        logger.warning(f"Start date {start_date} is after the limit time {client.limit_time}.")
+        logger.error(f"Start date {start_date} is after the limit time {client.limit_time}.")
         raise ValueError("Invalid date range: start date is after the limit time.")
     
     if end_date < start_date:
-        logger.warning(f"End date {end_date} is before start date {start_date}.")
+        logger.error(f"End date {end_date} is before start date {start_date}.")
         raise ValueError("Invalid date range: end date is before start date.")
     
     # Check category_code exists
