@@ -78,9 +78,9 @@ async def query_similar_companies(
         WHERE 
             industry = (SELECT industry FROM `ktln.company_info` WHERE stock_code = @stock_symbol)
             AND stock_code != @stock_symbol
-        LIMIT 5
         ORDER BY 
             issue_share DESC
+        LIMIT 5
     """
 
     logger.info(f"Querying similar companies for {stock_symbol}")

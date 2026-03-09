@@ -309,8 +309,8 @@ def register_tool(mcp, client: Client):
     ):
         """
         Fetch financial ratio data from BigQuery for the given stock symbol/industry, ratio code, and date range.
-        
-        Args:
+               
+       Args:
             stock_code: Stock code/Industry to query. For industry, currently support support "Banking" industry with stock_code = "Banking".
             ratio_code: Financial ratio code to query
             start_date: Start date in 'YYYY-MM-DD' format
@@ -346,8 +346,10 @@ def register_tool(mcp, client: Client):
         """
         Fetch financial statement data from BigQuery for the given stock symbol/industry, category code, and date range.
         
+        The industry includes: "Basic Resources", "Financial Services", "Utilities (Electricity, Water & Gas)", "Banking", "Food and Beverages", "Retail", "Travel and Leisure", "Chemicals", "Information Technology", "Oil and Gas", "Real Estate"
+
         Args:
-            stock_code: Stock code/Industry to query. For industry, currently support support "Banking" industry with stock_code = "Banking".
+            stock_code: Stock code/Industry to query.
             category_code: Financial statement category code to query
             start_date: Start date in 'YYYY-MM-DD' format
             end_date: End date in 'YYYY-MM-DD' format

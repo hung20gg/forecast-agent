@@ -1,7 +1,7 @@
 services:
   mcp-server:
-    profiles: ["full", "mcp-only"]
-    image: quanghung20gg/forecast-mcp-server:v0.2
+    profiles: [ "full", "mcp-only" ]
+    image: quanghung20gg/forecast-mcp-server:v0.1
     container_name: forecast-agent-mcp-server
     environment:
       - GCP_PROJECT_ID=${GCP_PROJECT_ID}
@@ -19,14 +19,14 @@ services:
       - forecast-agent-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "python -c 'import socket; s=socket.socket(); s.connect((\"localhost\", 9003)); s.close()' || exit 1"]
+      test: [ "CMD-SHELL", "python -c 'import socket; s=socket.socket(); s.connect((\"localhost\", 9003)); s.close()' || exit 1" ]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 10s
 
   backend:
-    profiles: ["full"]
+    profiles: [ "full" ]
     image: quanghung20gg/forecast-backend:v0.2
     container_name: forecast-agent-backend
     ports:
@@ -43,14 +43,14 @@ services:
       - forecast-agent-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health', timeout=5)"]
+      test: [ "CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health', timeout=5)" ]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
 
   frontend:
-    profiles: ["full"]
+    profiles: [ "full" ]
     image: ghcr.io/open-webui/open-webui:main-slim
     container_name: forecast-agent-frontend
     ports:
@@ -69,7 +69,7 @@ services:
       - forecast-agent-network
 
   text-embedding-service:
-    profiles: ["full", "mcp-only"]
+    profiles: [ "full", "mcp-only" ]
     image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.8
     container_name: forecast-agent-embedding
     environment:
@@ -81,7 +81,7 @@ services:
       - forecast-agent-network
 
   qdrant:
-    profiles: ["full", "mcp-only", "vectordb-init"]
+    profiles: [ "full", "mcp-only", "vectordb-init" ]
     image: qdrant/qdrant:v1.16.3
     container_name: forecast-agent-qdrant
     volumes:
@@ -94,7 +94,7 @@ services:
     restart: unless-stopped
 
   vectordb-init:
-    profiles: ["vectordb-init"]
+    profiles: [ "vectordb-init" ]
     image: quanghung20gg/forecast-vectordb-init:v0.1
     container_name: forecast-agent-vectordb-init
     depends_on:

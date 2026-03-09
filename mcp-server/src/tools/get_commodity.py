@@ -116,5 +116,6 @@ def register_tool(mcp, client: Client):
             Commodities value as a string or error message
         """
         if duration not in ['daily', 'monthly']:
-            raise ValueError("Invalid duration specified. Use 'daily' or 'monthly'.")
+            logger.error(f"Invalid duration specified for get_commodities_value: {duration}")
+            raise ValueError(f"Invalid duration {duration} for get_commodities_value. Use 'daily' or 'monthly'.")
         return await query_commodities_value(client, commodity_name, start_date, end_date, duration)
