@@ -6,12 +6,16 @@ import pandas as pd
 import anyio
 from datetime import datetime 
 
+from utils import normalize_search_query
 
-async def _get_exact_financial_ratio_code(
+
+async def get_exact_financial_ratio_code(
     client: Client,
     query: str,
 ) -> str:
-        
+
+    query = normalize_search_query(query)
+
     sql = f"""
         SELECT
             ratio_code,
@@ -36,7 +40,7 @@ async def _get_exact_financial_ratio_code(
 
 
 
-async def _query_financial_ratio(
+async def query_financial_ratio(
     client: Client,
     stock_code: str,
     ratio_code: str,
@@ -72,7 +76,7 @@ async def _query_financial_ratio(
     results_check = await client.aexecute_query(sql_check, job_config=job_config_check)
     row_check = list(results_check)[0]
     if row_check['cnt'] == 0:
-        similarity_result = await _get_exact_financial_ratio_code(client, ratio_code)
+        similarity_result = await get_exact_financial_ratio_code(client, ratio_code)
         if "[FAILED]" in similarity_result:
             return f"Ratio code '{ratio_code}' or similar names do not exist. Please change your query and use the tool 'get_exact_financial_ratio_code' to find the correct ratio code."
         return f"Ratio code '{ratio_code}' does not exist. Here are some similar ratio codes or names that available:\n{similarity_result}"
@@ -144,10 +148,12 @@ async def _query_financial_ratio(
     return f"[SUCCESS] Stock code: {stock_code}\nRatio Code: {ratio_code}\n\n{df.to_markdown(index=False)}"
 
 
-async def _get_exact_financial_statement_account(
+async def get_exact_financial_statement_account(
     client: Client,
     query: str,
 ) -> str:
+
+    query = normalize_search_query(query)
         
     sql = f"""
         SELECT
@@ -177,7 +183,7 @@ async def _get_exact_financial_statement_account(
     return f"[SUCCESS] Similar category codes and names similar to '{query}':\n{df.to_markdown(index=False)}"
 
 
-async def _query_financial_statement(
+async def query_financial_statement(
     client: Client,
     stock_code: str,
     category_code: str,
@@ -212,7 +218,7 @@ async def _query_financial_statement(
     results_check = await client.aexecute_query(sql_check, job_config=job_config_check)
     row_check = list(results_check)[0]
     if row_check['cnt'] == 0:
-        similarity_result = await _get_exact_financial_statement_account(client, category_code)
+        similarity_result = await get_exact_financial_statement_account(client, category_code)
         if "[FAILED]" in similarity_result:
             return f"[FAILED] Category code '{category_code}' or similar names do not exist. Please change your query and use the tool 'get_exact_financial_statement_account' to find the correct category code."
         return f"[FAILED] Category code '{category_code}' does not exist. Here are some similar category codes or names that available:\n{similarity_result}"
@@ -296,7 +302,7 @@ def register_tool(mcp, client: Client):
         Returns:
             Financial ratio code as a string or error message
         """
-        return await _get_exact_financial_ratio_code(client, query)
+        return await get_exact_financial_ratio_code(client, query)
     
 
     @mcp.tool()
@@ -319,7 +325,7 @@ def register_tool(mcp, client: Client):
         Returns:
             Financial ratio data as a string or error message
         """
-        return await _query_financial_ratio(client, stock_code, ratio_code, start_date, end_date, duration)
+        return await query_financial_ratio(client, stock_code, ratio_code, start_date, end_date, duration)
     
 
     @mcp.tool()
@@ -332,7 +338,7 @@ def register_tool(mcp, client: Client):
         Returns:
             Financial statement account as a string or error message
         """
-        return await _get_exact_financial_statement_account(client, query)
+        return await get_exact_financial_statement_account(client, query)
     
 
     @mcp.tool()
@@ -357,4 +363,4 @@ def register_tool(mcp, client: Client):
         Returns:
             Financial statement data as a string or error message
         """
-        return await _query_financial_statement(client, stock_code, category_code, start_date, end_date, duration)
+        return await query_financial_statement(client, stock_code, category_code, start_date, end_date, duration)

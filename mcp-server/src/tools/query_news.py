@@ -10,6 +10,7 @@ import json
 from env_config import get_env
 import datetime
 
+from utils import normalize_search_query
 
 
 def truncate_text(text: str, max_length: int = 750) -> str:
@@ -161,6 +162,8 @@ async def query_news(
     limit: int = 5,
     channel: Optional[str] = None
 ) -> str:
+
+    user_query = normalize_search_query(user_query)
     
     end_date = min(end_date, client.limit_time) if client.limit_time else end_date
 
