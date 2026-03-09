@@ -49,7 +49,7 @@ def _generate_ask_date_and_gap(target_year, target_time, is_quarter):
     
     return ask_date.strftime("%Y-%m-%d"), gap
 
-def build_market_query(table_name, target_id_col, time_col='time', join_name_col=None):
+def build_market_query(table_name, target_id_col, time_col='time', join_name_col=None, value_col='close'):
     """Helper to build query for stock, index, commodity"""
     q = f"""
     WITH daily_returns AS (
@@ -60,8 +60,8 @@ def build_market_query(table_name, target_id_col, time_col='time', join_name_col
             EXTRACT(YEAR FROM {time_col}) as year,
             EXTRACT(QUARTER FROM {time_col}) as quarter,
             EXTRACT(MONTH FROM {time_col}) as month,
-            close,
-            LAG(close) OVER(PARTITION BY {target_id_col} ORDER BY {time_col}) as prev_close
+            {value_col} as close,
+            LAG({value_col}) OVER(PARTITION BY {target_id_col} ORDER BY {time_col}) as prev_close
         FROM `neusolution.ktln.{table_name}`
         WHERE {time_col} >= '2023-05-01'
     ),
@@ -103,13 +103,6 @@ def build_market_query(table_name, target_id_col, time_col='time', join_name_col
     ORDER BY {target_id_col}, year, time_val
     """
     
-    # Customize for commodity vs index
-    if table_name == 'commodities_daily':
-        # commodities has value instead of close, indicator_name instead of stock_code
-        q = q.replace('close', 'value').replace('stock_code', 'indicator_code').replace('name_val', 'indicator_name')
-    elif table_name == 'indices_daily':
-        q = q.replace('stock_code', 'index_name')
-        
     return q
 
 def process_market_df(df, type_prefix, name_map_func=None, price_multiplier=1):
@@ -177,7 +170,7 @@ def generate_index_data():
     return process_market_df(df, "index", lambda n: f"chỉ số {n}")
 
 def generate_commodity_data():
-    q = build_market_query('commodities_daily', 'indicator_code')
+    q = build_market_query('commodities_daily', 'indicator_name', value_col='value')
     q = q.replace("WHERE time >=", "WHERE indicator_name IN ('Gold', 'Silver', 'Brent Crude Oil', 'Crude Oil WTI', 'Natural Gas', 'Gasoline') AND time >=")
     df = client.query(q).to_dataframe()
     commodity_vn = {
@@ -209,10 +202,10 @@ def generate_financials_data():
     q = """
     SELECT stock_code, year, quarter, category_code, data, segment
     FROM `neusolution.ktln.financial_statement`
-    WHERE category_code IN ('IS_020', 'IS_100', 'BS_125') AND year >= 2023 AND quarter > 0
+    WHERE category_code IN ('IS_020', 'IS_100', 'BS_125', 'BS_300', 'Bank_TM_121', 'Bank_TM_45', 'Bank_TM_61', 'CF_130') AND year >= 2023 AND quarter > 0
     """
     df = client.query(q).to_dataframe()
-    names = {'IS_020': 'Doanh thu', 'IS_100': 'Lợi nhuận ròng', 'BS_125': 'Dư nợ cho vay khách hàng'}
+    names = {'IS_020': 'Doanh thu', 'IS_100': 'Lợi nhuận ròng', 'BS_125': 'Dư nợ cho vay khách hàng', 'BS_300':'Tổng nợ phải trả', 'IS_049': 'Chi phí lãi vay', 'Bank_TM_121': 'Tiền gửi không kỳ hạn', 'Bank_TM_45': 'Cho vay ngành xây dựng', 'Bank_TM_61': 'Cho vay bất động sản và tư vấn', 'CF_130': 'Tiền và các khoản tương đương tiền tại thời điểm cuối kỳ', 'Bank_TM_72': 'Cho vay ngắn hạn', 'Bank_TM_74': 'Cho vay dài hạn'}
     
     industry_vn = {
         'Basic Resources': 'Tài nguyên Cơ bản', 'Financial Services': 'Dịch vụ Tài chính',
@@ -256,6 +249,43 @@ def generate_bank_ratios_data():
         return q_text, val
         
     return process_other_df(df, lambda r: f"bank_ratio_{r['ratio_code']}", ext)
+
+def generate_ratios_data():
+    q = """
+    SELECT stock_code, year, quarter, ratio_code, data, segment
+    FROM `neusolution.ktln.financial_ratio`
+    WHERE ratio_code IN ('NIM', 'BDR', 'ROE', 'ROA', 'EBITDA', 'DTTCR', 'QR', 'CashR') AND year >= 2023 AND quarter > 0 AND segment <> 'industry'
+    """
+
+    df = client.query(q).to_dataframe()
+    names = {'NIM': 'NIM', 
+    'BDR': 'Tỷ lệ nợ xấu', 
+    'ROE': 'Tỷ suất sinh lời trên vốn chủ sở hữu', 
+    'ROA': 'Tỷ suất sinh lời trên tổng tài sản', 
+    'EBITDA': 'EBITDA', 
+    'DTTCR': 'Nợ trên tổng vốn chủ sở hữu', 
+    'QR': 'Khả năng nhanh toán nhanh', 
+    'CashR': 'Khả năng thanh toán nhanh bằng tiền mặt',
+    'FCF': 'Dòng tiền tự do',
+    'DTER': 'Tỷ lệ nợ trên tổng tài sản'
+    }
+    
+    def ext(row, y, q):
+        st = row['stock_code']
+        cat = names[row['ratio_code']]
+        val = round(row['data'], 4) if pd.notnull(row['data']) else 'N/A'
+        segment = str(row.get('segment', '')).lower()
+
+        if segment == 'bank':
+            q_text = f"{cat} của ngân hàng {st} trong quý {q} năm {y} là bao nhiêu?"
+
+        else:
+            q_text = f"{cat} của công ty {st} trong quý {q} năm {y} là bao nhiêu?"
+
+        return q_text, val
+        
+    return process_other_df(df, lambda r: f"ratio_{r['ratio_code']}", ext)
+
 
 def generate_macro_data():
     q = """
@@ -332,7 +362,10 @@ if __name__ == '__main__':
     all_data = []
     
     print("Generating stocks...")
-    all_data.extend(generate_stock_data())
+    stock_data = generate_stock_data()
+    if len(stock_data) > 3000:
+        stock_data = random.sample(stock_data, 4000)
+    all_data.extend(stock_data)
     print("Generating index...")
     all_data.extend(generate_index_data())
     print("Generating commodity...")
@@ -340,7 +373,7 @@ if __name__ == '__main__':
     print("Generating financials...")
     all_data.extend(generate_financials_data())
     print("Generating bank ratios...")
-    all_data.extend(generate_bank_ratios_data())
+    all_data.extend(generate_ratios_data())
     print("Generating macro...")
     all_data.extend(generate_macro_data())
     

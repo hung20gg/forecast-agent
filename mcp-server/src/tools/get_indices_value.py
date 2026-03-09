@@ -124,7 +124,7 @@ def register_tool(mcp, client: Client):
         """
         if duration not in ['daily', 'monthly']:
             logger.error(f"Invalid duration specified: {duration}")
-            raise ValueError("Invalid duration specified. Use 'daily' or 'monthly'.")
+            raise ValueError(f"Invalid duration {duration} for get_indices_value. Use 'daily' or 'monthly'.")
         
         else:
             return await query_indices_value(client, index_name, start_date, end_date, duration)

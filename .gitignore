@@ -18,3 +18,5 @@ qdrant/
 qdrant.exe
 
 .env.local
+
+~$*

@@ -101,5 +101,5 @@ def register_tool(mcp, client: Client):
         """
         if duration not in ['daily', 'monthly']:
             logger.error(f"Invalid duration specified for get_stock_value: {duration}")
-            raise ValueError("Invalid duration specified. Use 'daily' or 'monthly'.")
+            raise ValueError(f"Invalid duration {duration} for get_stock_value. Use 'daily' or 'monthly'.")
         return await query_stock_value(client, stock_code, start_date, end_date, duration)

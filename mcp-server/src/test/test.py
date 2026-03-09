@@ -45,6 +45,15 @@ def test_stock_value():
     print(result)
 
 
+def test_stock_overtime_value():
+    result = anyio.run(query_stock_value, client, "MBB", "2025-01-01", "2025-12-31", "monthly")
+    print(result)
+
+
+def test_stock_overtime_err():
+    result = anyio.run(query_stock_value, client, "MBB", "2025-10-01", "2025-12-31", "monthly")
+    print(result)
+
 def test_indices_value():
     result = anyio.run(query_indices_value, client, "VNINDEX", "2022-01-01", "2022-12-31", "monthly")
     print(result)
@@ -61,7 +70,8 @@ def test_company_info():
     print(result)
 
 if __name__ == "__main__":
-    test_stock_value()
-    test_indices_value()
-    test_indices_available()
-    test_company_info() 
+    # test_stock_value()
+    # test_indices_value()
+    # test_indices_available()
+    # test_company_info() 
+    test_stock_overtime_err()
