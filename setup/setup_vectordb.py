@@ -29,10 +29,18 @@ def setup_vectordb():
     
     # Get credentials path
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    credentials_path = str(os.getenv('GCS_CREDENTIALS_PATH'))
+    credentials_path = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
+    print('Current directory:', current_dir)
+    if credentials_path:
+        # Resolve relative path to absolute, relative to project root
+        print('Found GCS credentials path in environment variable:', credentials_path)
+        credentials_path = os.path.join(current_dir, "..", credentials_path)
+        print('Resolved GCS credentials path to:', credentials_path)
+    else:
+        credentials_path = None
     
     # Verify credentials file exists
-    if not os.path.isfile(credentials_path):
+    if not credentials_path or not os.path.isfile(credentials_path):
         raise FileNotFoundError(
             f"GCS credentials not found at {credentials_path}"
         )
@@ -62,9 +70,10 @@ def setup_vectordb():
         print(f"   Found: {latest_blob.name}")
         
         # Download to shared snapshots directory
-        temp_dir = '/qdrant/snapshots'
+        project_root = os.path.dirname(current_dir)
+        temp_dir = os.path.join(project_root, 'qdrant', 'snapshots')
         os.makedirs(temp_dir, exist_ok=True)
-        local_snapshot = os.path.join(temp_dir, os.path.basename(latest_blob.name)).replace('\\', '/')
+        local_snapshot = os.path.join(temp_dir, os.path.basename(latest_blob.name))
         
         latest_blob.download_to_filename(local_snapshot)
         file_size_mb = os.path.getsize(local_snapshot) / (1024 * 1024)
@@ -85,7 +94,7 @@ def setup_vectordb():
         import requests
         url = f"{QDRANT_URL}/collections/{COLLECTION_NAME}/snapshots/recover?wait=true"
         payload = {
-            "location": f"file:///qdrant/snapshots/{os.path.basename(local_snapshot)}"
+            "location": f"file://{local_snapshot}"
         }
         resp = requests.put(url, json=payload)
         if resp.status_code not in [200, 201, 202]:

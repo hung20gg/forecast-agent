@@ -291,6 +291,11 @@ async def query_financial_statement(
 
 
 def register_tool(mcp, client: Client):
+    _get_exact_financial_ratio_code = globals()["get_exact_financial_ratio_code"]
+    _query_financial_ratio = globals()["query_financial_ratio"]
+    _get_exact_financial_statement_account = globals()["get_exact_financial_statement_account"]
+    _query_financial_statement = globals()["query_financial_statement"]
+
     @mcp.tool()
     
     async def get_exact_financial_ratio_code(query: str) -> str:
@@ -302,7 +307,7 @@ def register_tool(mcp, client: Client):
         Returns:
             Financial ratio code as a string or error message
         """
-        return await get_exact_financial_ratio_code(client, query)
+        return await _get_exact_financial_ratio_code(client, query)
     
 
     @mcp.tool()
@@ -325,7 +330,7 @@ def register_tool(mcp, client: Client):
         Returns:
             Financial ratio data as a string or error message
         """
-        return await query_financial_ratio(client, stock_code, ratio_code, start_date, end_date, duration)
+        return await _query_financial_ratio(client, stock_code, ratio_code, start_date, end_date, duration)
     
 
     @mcp.tool()
@@ -338,7 +343,7 @@ def register_tool(mcp, client: Client):
         Returns:
             Financial statement account as a string or error message
         """
-        return await get_exact_financial_statement_account(client, query)
+        return await _get_exact_financial_statement_account(client, query)
     
 
     @mcp.tool()
@@ -363,4 +368,4 @@ def register_tool(mcp, client: Client):
         Returns:
             Financial statement data as a string or error message
         """
-        return await query_financial_statement(client, stock_code, category_code, start_date, end_date, duration)
+        return await _query_financial_statement(client, stock_code, category_code, start_date, end_date, duration)
