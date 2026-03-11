@@ -217,15 +217,16 @@ async def query_news(
             LIMIT @limit
         """
     try:
-        job_config = bigquery.QueryJobConfig(
-            query_parameters=[
-                bigquery.ScalarQueryParameter("q", "STRING", user_query),
-                bigquery.ScalarQueryParameter("start_date", "STRING", start_date),
-                bigquery.ScalarQueryParameter("end_date", "STRING", end_date),
-                bigquery.ScalarQueryParameter("limit", "INT64", limit),
-                # bigquery.ScalarQueryParameter("channel", "STRING", channel) if channel else None,
-            ]
-        )
+        query_params = [
+            bigquery.ScalarQueryParameter("q", "STRING", user_query),
+            bigquery.ScalarQueryParameter("start_date", "STRING", start_date),
+            bigquery.ScalarQueryParameter("end_date", "STRING", end_date),
+            bigquery.ScalarQueryParameter("limit", "INT64", limit if limit is not None else 5),
+        ]
+        if channel:
+            query_params.append(bigquery.ScalarQueryParameter("channel", "STRING", channel))
+            
+        job_config = bigquery.QueryJobConfig(query_parameters=query_params)
         
         results = client.execute_query(query, job_config=job_config)
         if not results:

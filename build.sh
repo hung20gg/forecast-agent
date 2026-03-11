@@ -1,13 +1,15 @@
 #!/bin/bash
 echo "=== Setting up Environment ==="
-uv venv
-source .venv/Scripts/activate 2>/dev/null || source .venv/bin/activate 2>/dev/null
+# Check if venv exists, if not create it
+if [ ! -d ".venv" ]; then
+    uv venv
+fi
+source .venv/bin/activate 2>/dev/null || source .venv/Scripts/activate 2>/dev/null
 
 if ! command -v rustc &> /dev/null; then
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
     source "$HOME/.cargo/env"
 fi
-
 
 echo "=== 1. Building MCP Server ==="
 bash scripts/build/mcp_server.sh

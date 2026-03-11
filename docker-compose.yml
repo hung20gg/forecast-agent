@@ -1,7 +1,7 @@
 services:
   mcp-server:
     profiles: [ "full", "mcp-only" ]
-    image: quanghung20gg/forecast-mcp-server:v0.1
+    image: quanghung20gg/forecast-mcp-server:v0.2
     container_name: forecast-agent-mcp-server
     environment:
       - GCP_PROJECT_ID=${GCP_PROJECT_ID}

@@ -20,3 +20,8 @@ qdrant.exe
 .env.local
 
 ~$*
+
+# Build and script generated files
+storage/
+snapshots/
+.qdrant-initialized

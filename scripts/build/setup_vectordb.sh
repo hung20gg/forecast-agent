@@ -1,13 +1,18 @@
 #!/bin/bash
 echo "=== Initializing Vector DB ==="
-cd setup
-uv pip install -r requirements.txt
+
+# Get the directory of this script and project root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+cd "$PROJECT_ROOT/setup"
+uv pip install --python "$PROJECT_ROOT/.venv/bin/python" -r requirements.txt
 
 echo "Starting temporary Qdrant server for initialization..."
-if [ -f "../qdrant/qdrant.exe" ]; then
-    QDRANT_BIN="../qdrant/qdrant.exe"
+if [ -f "$PROJECT_ROOT/qdrant/qdrant.exe" ]; then
+    QDRANT_BIN="$PROJECT_ROOT/qdrant/qdrant.exe"
 else
-    QDRANT_BIN="../qdrant/qdrant"
+    QDRANT_BIN="$PROJECT_ROOT/qdrant/qdrant"
 fi
 $QDRANT_BIN &
 QDRANT_PID=$!
@@ -21,4 +26,3 @@ python setup_vectordb.py
 
 echo "Stopping temporary Qdrant server..."
 kill $QDRANT_PID 2>/dev/null || taskkill //PID $QDRANT_PID //F 2>/dev/null
-cd ..

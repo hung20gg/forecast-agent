@@ -1,6 +1,8 @@
 #!/bin/bash
 
-git clone https://github.com/huggingface/text-embeddings-inference.git
+if [ ! -d "text-embeddings-inference" ]; then
+    git clone https://github.com/huggingface/text-embeddings-inference.git
+fi
 
 export PATH=$PATH:/usr/local/cuda/bin
 

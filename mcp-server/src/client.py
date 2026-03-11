@@ -1,6 +1,8 @@
 from google.cloud import bigquery
 from qdrant_client import QdrantClient, models
 from google.oauth2 import service_account
+from google.auth.transport.requests import AuthorizedSession
+from requests.adapters import HTTPAdapter
 import requests
 from logger import logger
 import os
@@ -19,12 +21,16 @@ def get_embedding(query: str) -> Optional[list[float]]:
             embedding_url,
             json={"inputs": query, "truncate": True},
             headers={"Content-Type": "application/json"},
-            timeout=10
+            timeout=5
         )
         response.raise_for_status()
-        embedding = response.json()
+        try:
+            embedding = response.json()
+        except ValueError:
+            logger.error(f"Invalid JSON from embedding service. Status: {response.status_code}, Response: {response.text}")
+            return None
 
-        if isinstance(embedding[0], list):
+        if isinstance(embedding, list) and len(embedding) > 0 and isinstance(embedding[0], list):
             embedding = embedding[0]
         return embedding
     except Exception as e:
@@ -77,8 +83,8 @@ class Qdrant:
         """Execute a query against the Qdrant collection."""
         query_filter = None
         vector = get_embedding(query)
-        count_vectors = self.count_vectors(collection_name)
-        logger.info(f"Count vectors in {collection_name}: {count_vectors}")
+        if vector is None:
+            raise RuntimeError(f"Failed to get embedding for query — embedding service may be unavailable.")
         
         if start_date or end_date:
             filter_conditions = []
@@ -98,16 +104,16 @@ class Qdrant:
                 )
             query_filter = models.Filter(must=filter_conditions)
         
-        results = self.client.query_points(
+        results = self.client.search(
             collection_name=collection_name,
-            query=vector,
+            query_vector=vector,
             query_filter=query_filter,
             limit=limit,
         )
         
         # Convert results to JSON format
         formatted_results = []
-        for result in results.points:
+        for result in results:
             formatted_results.append({
                 "score": result.score,
                 "payload": result.payload
@@ -132,8 +138,15 @@ class BigQueryClient:
         self.limit_time = limit_time or get_env('LIMIT_TIME')
         
         if self.credentials_path:
-
-            self.client = bigquery.Client.from_service_account_json(self.credentials_path, project=self.project_id)
+            credentials = service_account.Credentials.from_service_account_file(
+                self.credentials_path,
+                scopes=["https://www.googleapis.com/auth/bigquery",
+                        "https://www.googleapis.com/auth/cloud-platform"],
+            )
+            session = AuthorizedSession(credentials)
+            adapter = HTTPAdapter(pool_connections=25, pool_maxsize=25)
+            session.mount("https://", adapter)
+            self.client = bigquery.Client(project=self.project_id, credentials=credentials, _http=session)
         else:
             # Use default credentials (for Cloud environments)
             self.client = bigquery.Client(project=self.project_id)
@@ -236,4 +249,8 @@ class Client:
         def run():
             return self.qdrant_client.query(collection_name, query, start_date, end_date)
 
-        return await loop.run_in_executor(None, run)
+        try:
+            return await loop.run_in_executor(None, run)
+        except RuntimeError as e:
+            logger.error(f"Qdrant query failed: {e}")
+            return []
