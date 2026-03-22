@@ -1,5 +1,6 @@
 param(
     [string]$DatasetPath = "hung20gg/financial-forecast",
+    [string]$Split = "test",
     [string]$OutputFile,
     [string]$AgentType = "react",
     [int]$NumWorker = 2
@@ -23,6 +24,7 @@ $scriptPath = Join-Path $ProjectRoot "scripts/run/run_evaluation.py"
 
 python $scriptPath `
     --dataset_path $DatasetPath `
+    --split $Split `
     --output_file $OutputFile `
     --agent_type $AgentType `
     --base_model $ModelName `

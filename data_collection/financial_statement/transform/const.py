@@ -64,16 +64,16 @@ PROFITABILITY_RATIO_FUNCTIONS = {
 
 CASHFLOW_RATIO_FUNCTIONS = {
     'EBITDA': [['IS_050', 'IS_023'], 'CF_002'],  # EBIT (IS_050), depreciation_and_amortization (CF_002)
-    'free_cash_flow': ['CF_020', ['CF_021', 'CF_023'], 'CF_036'],  # operating_net_cash_flow (CF_020), capital_expenditures (CF_021 + CF_023), dividends_paid (CF_036)
-    'free_cash_flow_to_operating_cash_flow_ratio': ['free_cash_flow', 'CF_020'],  # free_cash_flow, operating_net_cash_flow (CF_020)
-    'cash_debt_coverage_ratio': ['CF_020', 'BS_300'],  # operating_net_cash_flow (CF_020), avg_total_liabilities (BS_300)
-    'cash_interest_coverage': ['CF_020', 'IS_023'],  # operating_net_cash_flow (CF_020), interest_expense (IS_023)
-    'cash_return_on_assets': ['CF_020', 'BS_270'],  # operating_net_cash_flow (CF_020), avg_total_assets (BS_270)
-    'cash_return_on_fixed_assets': ['CF_020', 'BS_220'],  # operating_net_cash_flow (CF_020), avg_fixed_assets (BS_220)
-    'CFO_to_total_equity': ['CF_020', 'BS_400'],  # operating_net_cash_flow (CF_020), avg_total_equity (BS_400)
-    'cash_flow_from_sales_to_sales': ['CF_020', 'IS_010'],  # operating_net_cash_flow (CF_020), net_sales (IS_010)
-    'cash_flow_margin': ['CF_020', ['IS_010', 'IS_021']],  # operating_net_cash_flow (CF_020), total_revenue (IS_010 + IS_021)
-    'earning_quality_ratio': ['CF_020', 'IS_060'],  # operating_net_cash_flow (CF_020), net_income (IS_060)
+    'free_cash_flow': ['CF_050', 'CF_051', 'CF_078'],  # operating_net_cash_flow (CF_050), capital_expenditures (CF_021 + CF_023), dividends_paid (CF_036)
+    'free_cash_flow_to_operating_cash_flow_ratio': ['free_cash_flow', 'CF_050'],  # free_cash_flow, operating_net_cash_flow (CF_050)
+    'cash_debt_coverage_ratio': ['CF_050', 'BS_300'],  # operating_net_cash_flow (CF_050), avg_total_liabilities (BS_300)
+    'cash_interest_coverage': ['CF_050', 'IS_023'],  # operating_net_cash_flow (CF_050), interest_expense (IS_023)
+    'cash_return_on_assets': ['CF_050', 'BS_270'],  # operating_net_cash_flow (CF_050), avg_total_assets (BS_270)
+    'cash_return_on_fixed_assets': ['CF_050', 'BS_220'],  # operating_net_cash_flow (CF_050), avg_fixed_assets (BS_220)
+    'CFO_to_total_equity': ['CF_050', 'BS_400'],  # operating_net_cash_flow (CF_050), avg_total_equity (BS_400)
+    'cash_flow_from_sales_to_sales': ['CF_050', 'IS_010'],  # operating_net_cash_flow (CF_050), net_sales (IS_010)
+    'cash_flow_margin': ['CF_050', ['IS_010', 'IS_021']],  # operating_net_cash_flow (CF_050), total_revenue (IS_010 + IS_021)
+    'earning_quality_ratio': ['CF_050', 'IS_060'],  # operating_net_cash_flow (CF_050), net_income (IS_060)
 }
 
 CORP_AVG_RATIO_FUNCTIONS = {
@@ -373,7 +373,7 @@ YoY_RATIO_FUNCTIONS = {
         'Total_Asset_Growth_YoY': 'BS_270',
         'Equity_Growth_YoY': 'BS_400',
         'Liability_Growth_YoY': 'BS_300',
-        'CFO_Growth_YoY': 'CF_020'
+        'CFO_Growth_YoY': 'CF_060'
     },
     'bank':{
         'Net_Income_Growth_YoY' : 'IS_021',
@@ -425,7 +425,7 @@ QoQ_RATIO_FUNCTIONS = {
         'Total_Asset_Growth_QoQ': 'BS_270',
         'Equity_Growth_QoQ': 'BS_400',
         'Liability_Growth_QoQ': 'BS_300',
-        'CFO_Growth_QoQ': 'CF_020'
+        'CFO_Growth_QoQ': 'CF_060'
     },
     'bank': {
         'Net_Income_Growth_QoQ' : 'IS_021',

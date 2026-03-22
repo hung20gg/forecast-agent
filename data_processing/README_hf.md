@@ -46,6 +46,8 @@ configs:
   data_files:
   - split: train
     path: train.jsonl
+  - split: val
+    path: val.jsonl
   - split: test
     path: test.jsonl
 ---

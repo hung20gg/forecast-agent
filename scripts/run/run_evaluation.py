@@ -32,15 +32,18 @@ def flatten_openai_messages(messages: List[OpenAIMessage]) -> List[HFMessage]:
     - Keeps roles: system/user/assistant/tool
     - For content blocks: concatenates only text blocks.
     - If content is already a string, keeps it.
+    - Preserves tool_calls (assistant) and tool_call_id (tool) for chat templates.
     """
     out: List[HFMessage] = []
 
     for m in messages:
         role = m.get("role")
-        content = m.get("content", "")
+        content = m.get("content")  # may be None for tool-calling assistant messages
 
-        # Case 1: already a string
-        if isinstance(content, str):
+        # Case 1: already a string (or None → empty string)
+        if content is None:
+            text = ""
+        elif isinstance(content, str):
             text = content
 
         # Case 2: OpenAI blocks: [{"type":"text","text":"..."}, ...]
@@ -57,8 +60,17 @@ def flatten_openai_messages(messages: List[OpenAIMessage]) -> List[HFMessage]:
         else:
             text = str(content)
 
-        # HF templates usually want role + string content
-        out.append({"role": role, "content": text})
+        msg: HFMessage = {"role": role, "content": text}
+
+        # Preserve tool_calls for assistant messages (needed by chat templates)
+        if "tool_calls" in m and m["tool_calls"]:
+            msg["tool_calls"] = m["tool_calls"]
+
+        # Preserve tool_call_id for tool-response messages
+        if "tool_call_id" in m:
+            msg["tool_call_id"] = m["tool_call_id"]
+
+        out.append(msg)
 
     return out
 
@@ -69,12 +81,14 @@ def initialize_agent(agent_type: str, base_model: str, current_time: str):
         "agent_type": agent_type,
         "model_name": base_model,
         "streaming": True,
-        "current_time": current_time,
         "urls" : ["http://localhost:9003/sse"],
         "max_tool_calls": 20
     }
 
-    state_config = {"agent_type": agent_type}
+    state_config = {
+        "agent_type": agent_type, 
+        "current_time": current_time
+    }
 
     state = get_agent_state(**state_config)
     agent_config = get_agent_config(**agent_config)
@@ -124,7 +138,8 @@ async def run_evaluation(question: dict, output_file: str, args, write_lock: asy
     try:
         score = compute_score(
             flatten_messages,
-            ground_truth
+            ground_truth,
+            extra_info,
         )
     except Exception as exc:
         
@@ -141,7 +156,8 @@ async def run_evaluation(question: dict, output_file: str, args, write_lock: asy
         with open(output_file, 'a', encoding='utf-8') as f:
             f.write(json.dumps({
                 "question_id": question_id,
-                "score": score
+                "score": score,
+                "messages": messages,
             }) + '\n')
 
 
@@ -165,12 +181,12 @@ def load_processed_questions(output_file: str) -> list[dict]:
     return questions
 
 
-def load_questions_for_evaluation(dataset_path: str, output_file: str) -> list[dict]:
+def load_questions_for_evaluation(args) -> list[dict]:
 
-    processed_questions = load_processed_questions(output_file)
+    processed_questions = load_processed_questions(args.output_file)
     
     # For Hugging Face datasets, we can load directly from the dataset path
-    dataset = datasets.load_dataset(dataset_path, split="test")
+    dataset = datasets.load_dataset(args.dataset_path, split=args.split)
     
     questions = [
         question
@@ -194,15 +210,16 @@ def load_questions_for_evaluation(dataset_path: str, output_file: str) -> list[d
 
 #     await asyncio.gather(*[sem_run(q) for q in questions])
     
-async def run_evaluation_on_dataset(dataset_path: str, output_file: str, args):
-    questions = load_questions_for_evaluation(dataset_path, output_file)
+async def run_evaluation_on_dataset(args):
+    questions = load_questions_for_evaluation(args)
 
     for question in questions:
-        await run_evaluation(question, output_file, args, asyncio.Lock())
+        await run_evaluation(question,  args.output_file, args, asyncio.Lock())
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset_path", type=str, required=True)
+    parser.add_argument("--split", type=str, required=True)
     parser.add_argument("--output_file", type=str, required=True)
     parser.add_argument("--agent_type", type=str, default="react")
     parser.add_argument("--base_model", type=str, required=True)

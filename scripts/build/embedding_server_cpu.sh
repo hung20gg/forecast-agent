@@ -9,5 +9,5 @@ sudo apt-get install libssl-dev gcc -y
 export PATH=$PATH:/usr/local/cuda/bin
 
 cd text-embeddings-inference
-cargo install --path router -F metal
+cargo install --path router -F ort
 cd ..

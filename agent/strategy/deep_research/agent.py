@@ -73,7 +73,7 @@ class ResearcherAgent(BaseAgentMCP[ResearcherState, ResearcherAgentConfig]):
             state.messages.append({
                 "role": "system",
                 "content": self.config.researcher_system_prompt.format(
-                    current_time=self.config.current_time,
+                    current_time=state.current_time,
                     tool_notice=state.tool_notice
                 )
             })
@@ -114,7 +114,7 @@ class ResearcherAgent(BaseAgentMCP[ResearcherState, ResearcherAgentConfig]):
             {
                 "role": "system",
                 "content": self.config.researcher_compress_prompt.format(
-                    current_time=self.config.current_time
+                    current_time=state.current_time
                 )
             },
             {
@@ -211,7 +211,7 @@ class OpenDeepResearchAgent(BaseAgentMCP[OpenDeepResearchState, OpenDeepResearch
                 "role": "user",
                 "content": self.config.clarify_prompt.format(
                     messages=flatten_conv,
-                    current_time=self.config.current_time
+                    current_time=state.current_time
                 )
             }
         ]
@@ -272,7 +272,9 @@ class OpenDeepResearchAgent(BaseAgentMCP[OpenDeepResearchState, OpenDeepResearch
         write_research_messages = [
             {
                 "role": "system",
-                "content": self.config.research_brief_prompt
+                "content": self.config.research_brief_prompt.format(
+                    current_time=state.current_time
+                )
             },
             {
                 "role": "user",
@@ -302,7 +304,7 @@ class OpenDeepResearchAgent(BaseAgentMCP[OpenDeepResearchState, OpenDeepResearch
                     {
                         "role": "system",
                         "content": self.config.supervisor_system_prompt.format(
-                            current_time=self.config.current_time,
+                            current_time=state.current_time,
                             max_research_iterations = self.config.max_supervisor_iterations,
                             max_concurrent_researchers = self.config.max_concurrent_researchers
                         )
@@ -374,7 +376,8 @@ class OpenDeepResearchAgent(BaseAgentMCP[OpenDeepResearchState, OpenDeepResearch
                 research_task_state = ResearcherState(
                     task_id = tool_id,
                     research_task = arguments.get("research_task", ""),
-                    tool_notice = state.global_tool_notice
+                    tool_notice = state.global_tool_notice,
+                    current_time = state.current_time
                 )
                 research_task_states.append(research_task_state)
 

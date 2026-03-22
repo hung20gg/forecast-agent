@@ -1,4 +1,15 @@
 #!/bin/bash
+
+# Parse flags
+FORCE_MODE=""
+for arg in "$@"; do
+    case "$arg" in
+        --cpu) FORCE_MODE="cpu" ;;
+        --gpu) FORCE_MODE="gpu" ;;
+        --mps) FORCE_MODE="mps" ;;
+    esac
+done
+
 echo "=== Setting up Environment ==="
 # Check if venv exists, if not create it
 if [ ! -d ".venv" ]; then
@@ -21,16 +32,31 @@ echo "=== 3. Initializing Vector DB ==="
 bash scripts/build/setup_vectordb.sh
 
 echo "=== 4. Building Text Embeddings Server ==="
-if [[ "$(uname -s)" == "Darwin" ]]; then
-    echo "macOS detected -> building mac version"
-    bash scripts/build/embedding_server_mac.sh
-elif command -v nvidia-smi >/dev/null 2>&1 || command -v nvcc >/dev/null 2>&1; then
-    echo "CUDA detected -> building GPU version"
-    bash scripts/build/embedding_server_gpu.sh
-else
-    echo "Error: Unsupported device. Requires macOS or CUDA-capable environment."
-    exit 1
+if [[ -z "$FORCE_MODE" ]]; then
+    # Auto-detect
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+        FORCE_MODE="mps"
+    elif command -v nvidia-smi >/dev/null 2>&1 || command -v nvcc >/dev/null 2>&1; then
+        FORCE_MODE="gpu"
+    else
+        FORCE_MODE="cpu"
+    fi
 fi
+
+case "$FORCE_MODE" in
+    mps)
+        echo "Building MPS (Mac) version"
+        bash scripts/build/embedding_server_mac.sh
+        ;;
+    gpu)
+        echo "Building GPU (CUDA) version"
+        bash scripts/build/embedding_server_gpu.sh
+        ;;
+    cpu)
+        echo "Building CPU version"
+        bash scripts/build/embedding_server_cpu.sh
+        ;;
+esac
 
 echo "=== Build Complete ==="
 echo "All components are set up! You can now run the services."

@@ -89,15 +89,15 @@ def register_tool(mcp, client: Client):
     
     async def get_stock_value(stock_code: str, start_date: str, end_date: str, duration: str = 'daily') -> str:
         """
-        Fetch stock value from BigQuery for the given stock symbol and date range. The unit is VND
+        Fetch stock value for the given stock symbol and date range. The unit is in VND
         
         Args:
-            stock_code: Stock symbol to query. e.g., 'VIC', 'VHM'
+            stock_code: Stock to query. e.g., 'VIC', 'VHM'
             start_date: Start date in 'YYYY-MM-DD' format
             end_date: End date in 'YYYY-MM-DD' format
-            duration: 'daily' or 'monthly' to specify the data frequency
+            duration: 'daily' or 'monthly' to specify the frequency
         Returns:
-            Stock value as a string or error message
+            Stock value
         """
         if duration not in ['daily', 'monthly']:
             logger.error(f"Invalid duration specified for get_stock_value: {duration}")

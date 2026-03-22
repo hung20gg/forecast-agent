@@ -13,6 +13,16 @@ from uuid import uuid4
 KEY_PATH = '../data_collection/keys/big-query.json'
 client = bigquery.Client.from_service_account_json(KEY_PATH)
 
+
+vn30_tickers = [
+    "ACB", "BCM", "BID", "BVH", "CTG",
+    "FPT", "GAS", "GVR", "HDB", "HPG",
+    "MBB", "MSN", "MWG", "PLX", "POW",
+    "SAB", "SHB", "SSB", "SSI", "STB",
+    "TCB", "TPB", "VCB", "VHM", "VIB",
+    "VIC", "VJC", "VNM", "VPB", "VRE"
+]
+
 def get_last_day_of_month(year, month):
     _, last_day = calendar.monthrange(year, month)
     return datetime(year, month, last_day)
@@ -147,7 +157,7 @@ def process_market_df(df, type_prefix, name_map_func=None, price_multiplier=1):
         # Q2: Mean + Std
         mean_val = round(row['mean_close'], 2) if pd.notnull(row['mean_close']) else 0
         std_val = round(row['std_close'], 2) if pd.notnull(row['std_close']) else 0
-        q_text_stat = f"Giá trị trung bình của {display_name} trong {period_str} năm {y} là bao nhiêu?"
+        q_text_stat = f"Giá trị trung bình và độ lệch chuẩn của {display_name} trong {period_str} năm {y} là bao nhiêu?"
         ans_stat = f"Trung bình: {mean_val}, Độ lệch chuẩn: {std_val}"
         questions.append({
             "year": y, "quarter": t_val if is_quarter else None, "time_val": t_val, "is_quarter": is_quarter,
@@ -321,18 +331,17 @@ def is_test(y, t_val, is_quarter):
     if not is_quarter: return False
     return y == 2025 and t_val == 3
 
-def is_train_inclusive(y, t_val, is_quarter):
-    if is_quarter: return is_train(y, t_val, is_quarter)
-    # Months spanning Q3 2023 to Q2 2025: 2023-07 to 2025-06
-    if y == 2023 and t_val >= 7: return True
-    if y == 2024: return True
-    if y == 2025 and t_val <= 6: return True
-    return False
+def is_train_inclusive(time_asked):
+    # Train set: time_asked < 2025-09-30
+    return time_asked < '2025-09-30'
 
-def is_test_inclusive(y, t_val, is_quarter):
-    if is_quarter: return is_test(y, t_val, is_quarter)
-    # Month spanning Q3 2025: 2025-07 to 2025-09
-    return y == 2025 and 7 <= t_val <= 9
+def is_val_inclusive(time_asked):
+    # Val set: time_asked is exactly 2025-09-30 or 2025-06-30
+    return time_asked in ('2025-09-30', '2025-06-30')
+
+def is_test_inclusive(time_asked):
+    # Test set: time_asked > 2025-09-30
+    return time_asked > '2025-09-30'
 
 def format_huggingface(item, split, idx):
     extra = {
@@ -377,14 +386,17 @@ if __name__ == '__main__':
     print("Generating macro...")
     all_data.extend(generate_macro_data())
     
-    train_data = [d for d in all_data if is_train_inclusive(d['year'], d['time_val'], d['is_quarter'])]
-    test_data = [d for d in all_data if is_test_inclusive(d['year'], d['time_val'], d['is_quarter'])]
+    train_data = [d for d in all_data if is_train_inclusive(d['time_asked'])]
+    val_data   = [d for d in all_data if is_val_inclusive(d['time_asked'])]
+    test_data  = [d for d in all_data if is_test_inclusive(d['time_asked'])]
     
     print(f"Total valid generated pairs: {len(all_data)}")
     print(f"Train samples: {len(train_data)}")
-    print(f"Test samples: {len(test_data)}")
+    print(f"Val samples:   {len(val_data)}")
+    print(f"Test samples:  {len(test_data)}")
     
     random.shuffle(train_data)
+    random.shuffle(val_data)
     random.shuffle(test_data)
 
     os.makedirs('data', exist_ok=True)
@@ -393,6 +405,11 @@ if __name__ == '__main__':
     with open('data/train.jsonl', 'w', encoding='utf-8') as f:
         for idx, d in enumerate(train_data):
             f.write(json.dumps(format_huggingface(d, "train", idx), ensure_ascii=False) + '\n')
+
+    # Save val dataset
+    with open('data/val.jsonl', 'w', encoding='utf-8') as f:
+        for idx, d in enumerate(val_data):
+            f.write(json.dumps(format_huggingface(d, "val", idx), ensure_ascii=False) + '\n')
             
     # Save test dataset
     with open('data/test.jsonl', 'w', encoding='utf-8') as f:

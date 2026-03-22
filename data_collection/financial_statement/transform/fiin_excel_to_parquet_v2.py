@@ -3,6 +3,7 @@ import numpy as np
 from tqdm import tqdm
 
 import os
+import glob
 
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -32,8 +33,7 @@ def calculate_industry_financial_statement_explaination(df_tm):
     return df_industry_tm
 
 
-
-mapping_file = pd.ExcelFile(os.path.join(current_dir, 'metadata', 'vietnames_to_fiin.xlsx'))
+mapping_file = pd.ExcelFile(os.path.join(current_dir, 'metadata', 'vietnames_to_fiin_2026.xlsx'))
 
 df_map_bank = mapping_file.parse('fiin_bank')
 df_map_sec = mapping_file.parse('fiin_sec')
@@ -91,11 +91,11 @@ df_map_sec_is = df_map_sec[df_map_sec['source'] == 'IS']
 df_map_sec_cf = df_map_sec[df_map_sec['source'] == 'CF']
 
 bank_args = {
-    'Kết quả kinh doanh': {
+    'Kết quả Kinh doanh': {
         'nrows': 30,
         'mapping': df_map_bank_is
     },
-    'Bảng cân đối kế toán': {
+    'Cân đối kế toán': {
         'nrows': 92,
         'mapping': df_map_bank_bs
     },
@@ -107,33 +107,47 @@ bank_args = {
 }
 
 corp_args = {
-    'Kết quả kinh doanh': {
+    'Kết quả Kinh doanh': {
         'nrows': 29,
         'mapping': df_map_corp_is
     },
-    'Bảng cân đối kế toán': {
+    'Cân đối kế toán': {
         'nrows': 126,
         'mapping': df_map_corp_bs
     },
     'Lưu chuyển tiền tệ': {
-        'nrows': 45,
-        'mapping': df_map_corp_cf
+        'Gián tiếp': {
+                'nrows': 45,
+                'mapping': df_map_corp_cf
+        },
+        'Trực tiếp': {
+                'nrows': 32,
+                'mapping': df_map_corp_cf[17:]
+        }
+        
     }
     
 }
 
 sec_args = {
-    'Kết quả kinh doanh': {
+    'Kết quả Kinh doanh': {
         'nrows': 93,
         'mapping': df_map_sec_is
     },
-    'Bảng cân đối kế toán': {
+    'Cân đối kế toán': {
         'nrows': 216,
         'mapping': df_map_sec_bs
     },
     'Lưu chuyển tiền tệ': {
-        'nrows': 159,
-        'mapping': df_map_sec_cf
+        'Gián tiếp': {
+                'nrows': 159,
+                'mapping': df_map_sec_cf
+        },
+        'Trực tiếp': {
+                'nrows': 103,
+                'mapping': df_map_sec_cf[:31]
+        }
+        
     }
     
 }
@@ -181,6 +195,7 @@ df_tm_map['en_caption'] = df_tm_map['en_caption'].apply(lambda x: "(Explaination
 def get_data(excel_file, type_):
     
     dfs = []
+    dfs_sheet_names = []
     if type_ == 'bank':
         args = bank_args
     elif type_ == 'corp':
@@ -191,15 +206,34 @@ def get_data(excel_file, type_):
     sheet_names = list(args.keys())
     for sheet_name in sheet_names:
 
+        if sheet_name == 'Lưu chuyển tiền tệ' and type_ != 'bank':
+            temp_df = excel_file.parse(sheet_name=sheet_name, usecols=[0], header=None)
+            gian_tiep_idx = temp_df.index[temp_df[0].astype(str).str.contains('Gián tiếp', case=False, na=False)].tolist()
+            truc_tiep_idx = temp_df.index[temp_df[0].astype(str).str.contains('Trực tiếp', case=False, na=False)].tolist()
+            
+            if gian_tiep_idx:
+                method = 'Gián tiếp'
+                skiprows = gian_tiep_idx[0]
+            elif truc_tiep_idx:
+                method = 'Trực tiếp'
+                skiprows = truc_tiep_idx[0]
+            else:
+                method = 'Gián tiếp'
+                skiprows = 10
+            curr_args = args[sheet_name][method]
+        else:
+            skiprows = 10
+            curr_args = args[sheet_name]
+
         df_bs = excel_file.parse(
             sheet_name = sheet_name,
-            skiprows=10,
-            nrows=args[sheet_name]['nrows'],
+            skiprows=skiprows,
+            nrows=curr_args['nrows'],
         )
 
         df_bs = df_bs.iloc[3:]
-        fiin_cate = df_bs['Chỉ tiêuTỷ VND'].values.tolist()
-        map_cate = args[sheet_name]['mapping'][['category_code', 'vi_caption']].values.tolist()
+        fiin_cate = df_bs.iloc[:, 0].astype(str).values.tolist()
+        map_cate = curr_args['mapping'][['category_code', 'vi_caption']].values.tolist()
 
         # Map the corresponding category code
 
@@ -208,7 +242,7 @@ def get_data(excel_file, type_):
         cate_code = []
         for i in range(len(fiin_cate)):
             cate_index = i
-            if fiin_cate[i] == map_cate[map_index][1]:
+            if fiin_cate[i].strip() == map_cate[map_index][1].strip():
                 
                 cate_code.append(map_cate[map_index][0])
                 map_index += 1
@@ -217,6 +251,7 @@ def get_data(excel_file, type_):
             if map_index == len(map_cate):
                 break
             
+
         cate_code.extend([np.nan]*(len(fiin_cate) - len(cate_code)))
 
 
@@ -228,6 +263,7 @@ def get_data(excel_file, type_):
 
         table = []
         df_bs.dropna(subset=['category_code'], inplace=True)
+        df_bs.drop(columns=[df_bs.columns[0]], inplace=True)
 
         for index, row in df_bs.iterrows():
             
@@ -243,7 +279,21 @@ def get_data(excel_file, type_):
                 
         df = pd.DataFrame(table, columns=['category_code', 'time', 'data'])
         dfs.append(df)
-        
+        dfs_sheet_names.append(sheet_name)
+
+    empty_indices = [i for i, d in enumerate(dfs) if d.empty]
+    all_na_indices = [i for i, d in enumerate(dfs) if d.isna().all().any()]
+    if empty_indices or all_na_indices:
+        file_id = getattr(excel_file, "io", None)
+        print("get_data debug for", file_id)
+        print("get_data: concat inputs", [d.shape for d in dfs])
+        print("get_data: empty dfs", empty_indices)
+        print("get_data: all-NA columns", all_na_indices)
+        for i, df in enumerate(dfs):
+            print("get_data: sheet", dfs_sheet_names[i])
+            print(df)
+
+    # dfs = [d for d in dfs if not d.empty and not d.isna().all().all()]
     df = pd.concat(dfs)
     return df
 
@@ -269,8 +319,9 @@ def get_tm(excel_file, type_):
     df = pd.concat([df, args['mapping']], ignore_index=True, axis=1)
     df.columns = columns
     df.dropna(subset=['vi_caption'], inplace=True)
-    df.drop(columns=['Chỉ tiêuTỷ VND'], inplace=True)
+    df.drop(columns=[df.columns[0]], inplace=True)
     df.reset_index(drop=True, inplace=True)
+
     
     # df_mapping = args['mapping']
     # df.rename(columns={'Chỉ tiêuTriệu VND': 'vi_caption'}, inplace=True)
@@ -295,27 +346,39 @@ def get_tm(excel_file, type_):
                 data.append([row['category_code'], col, row[col]])
             
             
-            
     df = pd.DataFrame(data, columns=['category_code', 'time', 'data'])
-    
     
     return df
 
 
 non_bank_stock_code = ["HSG", "ELC", "VSC", "ACV", "REE", "SZC", "CSV", "PAN", "BSR", "SGP", "GMD", "ITD","FOX", "KDC", "SBT", "VGC", "HBC", "CTD", "DIG", "SCR", "KBC","MWG", "NHA", "VNM", "HPG", "VHM", "PNJ", "YEG", "FPT","MSN", "GAS", "VRE", "VJC", "VIC", "PLX", "SAB", "POW", "GVR", "BCM", "VPI", "DVM", "KDH", "HDC", "TCH", "CEO", "HUT", "NVL", "DBC", "SAF", "DHT", "VTP", "PVT", "FRT", "DGC", "DCM", "NKG", "CMG", "VGI", "PVC", "CAP", "DTD", "HLD", "L14", "L18", "LAS", "LHC", "NTP", "PLC", "PSD", "PVG", "PVS", "SLS", "TIG", "TMB", "TNG", "TVD", "VC3", "VCS", "DXG"]
-bank_stock_code = ["BID", "EIB", "OCB", "CTG", "VCB", "ACB", "MBB", "HDB", "TPB", "VPB",  "STB", "TCB",  "SHB", "VIB",  "ABB", "LPB", "NVB"]
+bank_stock_code = ["BID", "EIB", "OCB", "CTG", "VCB", "ACB", "MBB", "HDB", "TPB", "VPB",  "STB", "TCB",  "SHB", "VIB", "CTG",  "ABB", "LPB", "NVB"]
 securities_stock_code = ["MBS", "VND", "SSI", "VIX", "ORS"]
 
-root_dir = r'/Users/quanghung20gg/Downloads/DOANH NGHIỆP'
-file_dir = "{code}/FiinProX_DuLieuTaiChinh_BaoCaoTaiChinh_Yearly_Hop_nhat_{code}_20260120.xlsx"
-file_dir_quarter = "{code}/FiinProX_DuLieuTaiChinh_BaoCaoTaiChinh_Quarterly_Hop_nhat_{code}_20260120.xlsx"
+new = True
+if new:
+    bank_stock_code += ["EVF", "MSB", "NAB", "SGB", "VAB", "KLB", "BVB", "PGB", "NVB"]
+    securities_stock_code += ["VCI", "TVS", "SHS", "DSE", "HCM", "VDS", "APG", "CTS", "AGR"]
+    non_bank_stock_code += ["VCG", "LCG", "DPG", "CTI", "TIS", "PSH", "TLH", "STK", "TDG", "TVN", "DRI", "CNG", "SIP", "PVP", "VGS", "VHC", "IJC", "CII", "SJS", "NLG", "NT2", "LBM", "PC1", "HAH", "HAG", "KOS", "RAL", "PHR", "ILB", "AGG", "ASM", "CLL", "CRE", "D2D", "UIC", "TMS", "PPC", "PTB", "VOS", "VIP", "VTO", "NRC", "GEX", "HTN", "VLC", "GEE", "TCM", "PDR", "SCR", "HPX", "LDG", "AAA", "CTR", "SAM", "BWE", "SGT", "BMP", "ITC", "TTN", "VTE", "VHC", "MSH", "TTF", "ANV", "CMX", "IDI", "FMC", "BAF", "HT1", "PVD", "FIT", "ACL", "ABT", "AAM", "PET", "DGW", "DPM", "HDG", "IMP", "MAS"]
+
+
+root_dir = r'/Users/quanghung20gg/Downloads/drive-download-20260314T182941Z-3-001'
+file_dir_pattern = "FiinProX_DuLieuTaiChinh_BaoCaoTaiChinh_Yearly_Hop_nhat_{code}_*.xlsx"
+file_dir_quarter_pattern = "FiinProX_DuLieuTaiChinh_BaoCaoTaiChinh_Quarterly_Hop_nhat_{code}_*.xlsx"
+
+
+def find_latest_file(root, pattern):
+    matches = glob.glob(os.path.join(root, pattern))
+    if not matches:
+        return None
+    return max(matches, key=os.path.getmtime)
 
     
 dfs_corp = []
 dfs_corp_tm = []
 for code in tqdm(non_bank_stock_code):
-    file_path  = os.path.join(root_dir, file_dir.format(code=code)).replace('\\', os.sep).replace('/', os.sep)
-    if os.path.exists(file_path):
+    file_path = find_latest_file(root_dir, file_dir_pattern.format(code=code))
+    if file_path and os.path.exists(file_path):
         print(f"Processing {code}...")
         excel_file = pd.ExcelFile(file_path, engine="openpyxl")
         df_corp_y = get_data(excel_file, 'corp')
@@ -329,8 +392,8 @@ for code in tqdm(non_bank_stock_code):
 dfs_bank = []
 dfs_bank_tm = []
 for code in tqdm(bank_stock_code):
-    file_path  = os.path.join(root_dir, file_dir.format(code=code)).replace('\\', os.sep).replace('/', os.sep)
-    if os.path.exists(file_path):
+    file_path = find_latest_file(root_dir, file_dir_pattern.format(code=code))
+    if file_path and os.path.exists(file_path):
         print(f"Processing {code}...")
         excel_file = pd.ExcelFile(file_path, engine="openpyxl")
         df_bank_y = get_data(excel_file, 'bank')
@@ -346,8 +409,8 @@ for code in tqdm(bank_stock_code):
 dfs_sec = []
 dfs_sec_tm = []
 for code in tqdm(securities_stock_code):
-    file_path  = os.path.join(root_dir, file_dir.format(code=code)).replace('\\', os.sep).replace('/', os.sep)
-    if os.path.exists(file_path):
+    file_path = find_latest_file(root_dir, file_dir_pattern.format(code=code))
+    if file_path and os.path.exists(file_path):
         print(f"Processing {code}...")
         excel_file = pd.ExcelFile(file_path, engine="openpyxl")
         df_sec_y = get_data(excel_file, 'sec')
@@ -361,8 +424,8 @@ for code in tqdm(securities_stock_code):
     
     
 for code in tqdm(non_bank_stock_code):
-    file_path  = os.path.join(root_dir, file_dir_quarter.format(code=code)).replace('\\', os.sep).replace('/', os.sep)
-    if os.path.exists(file_path):
+    file_path = find_latest_file(root_dir, file_dir_quarter_pattern.format(code=code))
+    if file_path and os.path.exists(file_path):
         excel_file = pd.ExcelFile(file_path, engine="openpyxl")
         df_corp_q = get_data(excel_file, 'corp')
         df_corp_q['stock_code'] = code
@@ -373,8 +436,8 @@ for code in tqdm(non_bank_stock_code):
         dfs_corp_tm.append(df_corp_tm)
     
 for code in tqdm(bank_stock_code):
-    file_path  = os.path.join(root_dir, file_dir_quarter.format(code=code)).replace('\\', os.sep).replace('/', os.sep)
-    if os.path.exists(file_path):
+    file_path = find_latest_file(root_dir, file_dir_quarter_pattern.format(code=code))
+    if file_path and os.path.exists(file_path):
         excel_file = pd.ExcelFile(file_path, engine="openpyxl")
         df_bank_q = get_data(excel_file, 'bank')
         df_bank_q['stock_code'] = code
@@ -385,8 +448,8 @@ for code in tqdm(bank_stock_code):
         dfs_bank_tm.append(df_bank_tm)
     
 for code in tqdm(securities_stock_code):
-    file_path  = os.path.join(root_dir, file_dir_quarter.format(code=code)).replace('\\', os.sep).replace('/', os.sep)
-    if os.path.exists(file_path):
+    file_path = find_latest_file(root_dir, file_dir_quarter_pattern.format(code=code))
+    if file_path and os.path.exists(file_path):
         excel_file = pd.ExcelFile(file_path, engine="openpyxl")
         df_sec_q = get_data(excel_file, 'sec')
         df_sec_q['stock_code'] = code
@@ -406,6 +469,18 @@ df_bank_tm = pd.concat(dfs_bank_tm)
 df_corp_tm = pd.concat(dfs_corp_tm)
 df_sec_tm = pd.concat(dfs_sec_tm)
 
+df_bank.drop_duplicates(subset=['stock_code', 'category_code', 'time'], inplace=True)
+df_corp.drop_duplicates(subset=['stock_code', 'category_code', 'time'], inplace=True)
+df_sec.drop_duplicates(subset=['stock_code', 'category_code', 'time'], inplace=True)
+
+df_sec_tm.drop_duplicates(subset=['stock_code', 'category_code', 'time'], inplace=True)
+df_bank_tm.drop_duplicates(subset=['stock_code', 'category_code', 'time'], inplace   =True)
+df_corp_tm.drop_duplicates(subset=['stock_code', 'category_code', 'time'], inplace=True)
+
+
+print(df_bank[df_bank['time'] == 'Q4/2024'].head())   
+print(df_sec[df_sec['time'] == 'Q4/2024'].head())
+print(df_corp[df_corp['time'] == 'Q4/2024'].head())
 
 
 def get_quarter_time(text):
@@ -561,9 +636,9 @@ df_bank_tm.dropna(subset=['data'], inplace=True)
 df_corp_tm.dropna(subset=['data'], inplace=True)
 
 
-df_sec.to_parquet(os.path.join(current_dir, '..', '..', 'data', 'securities_financial_report_old.parquet'), index=False)
-df_bank.to_parquet(os.path.join(current_dir, '..', '..', 'data', 'bank_financial_report_old.parquet'), index=False)
-df_corp.to_parquet(os.path.join(current_dir, '..', '..', 'data', 'corp_financial_report_old.parquet'), index=False)
+df_sec.to_parquet(os.path.join(current_dir, '..', '..', 'data', 'securities_financial_report.parquet'), index=False)
+df_bank.to_parquet(os.path.join(current_dir, '..', '..', 'data', 'bank_financial_report.parquet'), index=False)
+df_corp.to_parquet(os.path.join(current_dir, '..', '..', 'data', 'corp_financial_report.parquet'), index=False)
 
 df_bank.rename(columns={'category_code': 'bank_code'}, inplace=True)
 df_sec.rename(columns={'category_code': 'sec_code'}, inplace=True)
@@ -590,7 +665,6 @@ df_industry_fs['segment'] = 'industry'
 
 
 
-
 pivot_df = df_bank_tm[df_bank_tm['category_code'].isin(['Bank_TM_68', 'Bank_TM_69', 'Bank_TM_70'])].pivot_table(
     index=["stock_code", "year", "quarter"], 
     columns="category_code", 
@@ -611,9 +685,9 @@ df_bank_tm['segment'] = 'bank'
 df_corp_tm['segment'] = 'corp'
 df_sec_tm['segment'] = 'sec'
 
-df_bank_tm.to_parquet(os.path.join(current_dir, '..', '..', 'data', 'bank_explaination_old.parquet'), index=False)
-df_sec_tm.to_parquet(os.path.join(current_dir, '..', '..', 'data', 'securities_explaination_old.parquet'), index=False)
-df_corp_tm.to_parquet(os.path.join(current_dir, '..', '..', 'data', 'corp_explaination_old.parquet'), index=False)
+df_bank_tm.to_parquet(os.path.join(current_dir, '..', '..', 'data', 'bank_explaination.parquet'), index=False)
+df_sec_tm.to_parquet(os.path.join(current_dir, '..', '..', 'data', 'securities_explaination.parquet'), index=False)
+df_corp_tm.to_parquet(os.path.join(current_dir, '..', '..', 'data', 'corp_explaination.parquet'), index=False)
 
 
 df_tm = pd.concat([df_bank_tm, df_sec_tm, df_corp_tm], ignore_index=True)
@@ -621,11 +695,14 @@ df_tm = pd.concat([df_bank_tm, df_sec_tm, df_corp_tm], ignore_index=True)
 df_tm_industry = calculate_industry_financial_statement_explaination(df_bank_tm)
 df_tm_industry['segment'] = 'industry'
 
+# df_tm = pd.concat([df_tm, df_tm_industry], ignore_index=True)
+
+df_tm.to_parquet(os.path.join(current_dir, '..', '..', 'data', 'financial_statement_explaination_v3.parquet'), index=False)
+
 df_fs = pd.concat([df_fs, df_industry_fs, df_tm, df_tm_industry], ignore_index=True)
 
-df_fs.to_parquet(os.path.join(current_dir, '..', '..', 'data', 'financial_statement_v3_old.parquet'), index=False)
+df_fs.to_parquet(os.path.join(current_dir, '..', '..', 'data', 'financial_statement_v3.parquet'), index=False)
+print(df_fs.head())
 
-
-df_tm = pd.concat([df_tm, df_tm_industry], ignore_index=True)
-
-df_tm.to_parquet(os.path.join(current_dir, '..', '..', 'data', 'financial_statement_explaination_v3_old.parquet'), index=False)
+# 
+# crop CF_020, sec CF_060

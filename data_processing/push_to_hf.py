@@ -6,6 +6,7 @@
 #
 # Expects:
 #   data/train.jsonl
+#   data/val.jsonl
 #   data/test.jsonl
 #
 # This script:
@@ -33,9 +34,11 @@ REPO_TYPE = "dataset"
 
 DATA_DIR = Path("data")
 TRAIN_IN = DATA_DIR / "train.jsonl"
+VAL_IN = DATA_DIR / "val.jsonl"
 TEST_IN = DATA_DIR / "test.jsonl"
 
 TRAIN_OUT = DATA_DIR / "train.cleaned.jsonl"
+VAL_OUT = DATA_DIR / "val.cleaned.jsonl"
 TEST_OUT = DATA_DIR / "test.cleaned.jsonl"
 
 ENV_PATH = Path("../.env")  # change if needed
@@ -228,6 +231,8 @@ configs:
   data_files:
   - split: train
     path: train.jsonl
+  - split: val
+    path: val.jsonl
   - split: test
     path: test.jsonl
 ---
@@ -278,11 +283,13 @@ def main() -> None:
     # 1) Clean JSONL files
     print("Cleaning JSONL files...")
     clean_jsonl(TRAIN_IN, TRAIN_OUT)
+    clean_jsonl(VAL_IN, VAL_OUT)
     clean_jsonl(TEST_IN, TEST_OUT)
 
     # 2) Upload cleaned files as train/test in repo root
     print("Uploading cleaned JSONL files...")
     upload(api, TRAIN_OUT, "train.jsonl")
+    upload(api, VAL_OUT, "val.jsonl")
     upload(api, TEST_OUT, "test.jsonl")
 
     # 3) Write + upload README.md
