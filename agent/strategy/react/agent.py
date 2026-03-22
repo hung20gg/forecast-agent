@@ -31,7 +31,7 @@ class ReActAgent(BaseAgentMCP[ReActAgentState, ReActAgentConfig]):
                 {
                     "role": "system",
                     "content": REACT_SYSTEM_PROMPT.format(
-                        current_time=self.config.current_time,
+                        current_time=state.current_time,
                         maximum_iterations=self.config.max_tool_calls
                     )
                 }
@@ -41,7 +41,7 @@ class ReActAgent(BaseAgentMCP[ReActAgentState, ReActAgentConfig]):
                 {
                     "role": "system",
                     "content": REACT_SYSTEM_PROMPT.format(
-                        current_time=self.config.current_time,
+                        current_time=state.current_time,
                         maximum_iterations=self.config.max_tool_calls
                     )
                 }

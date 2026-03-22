@@ -109,9 +109,9 @@ def register_tool(mcp, client: Client):
         return await query_indices_available(client)
     
     @mcp.tool()
-    async def get_indices_value(index_name: str, start_date: str, end_date: str, duration: str) -> str:
+    async def get_indices_value(index_name: str, start_date: str, end_date: str, duration: str = 'daily') -> str:
         """
-        Fetch indices value from BigQuery for the given index name and date range.
+        Fetch indices value for the given index name and date range.
         Index is the name for stock indices like 'KOSPI', 'NASDAQ', 'VNINDEX', etc.
         
         Args:
@@ -120,7 +120,7 @@ def register_tool(mcp, client: Client):
             end_date: End date in 'YYYY-MM-DD' format
             duration: 'daily' or 'monthly' to specify the data frequency
         Returns:
-            Indices value as a string or error message
+            Indices value
         """
         if duration not in ['daily', 'monthly']:
             logger.error(f"Invalid duration specified: {duration}")

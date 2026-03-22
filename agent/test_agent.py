@@ -3,23 +3,24 @@ import json
 from dataclasses import asdict
 
 import asyncio
-current_time = "2025-12-31"
+current_time = "2024-12-31"
 
 async def test_react():
     agent_config = {
         "agent_type": "react",
         "streaming": True,
-        "model_name": "vllm:Qwen/Qwen3-1.7B",
+        "model_name": "deepinfra:Qwen/Qwen3-235B-A22B-Thinking-2507",
         "urls" : ["http://localhost:9003/sse"],
-        "current_time": current_time
+        
     }
 
     agent_state_config = {
-        "agent_type": "react"
+        "agent_type": "react",
+        "current_time": current_time
     }
 
     state = get_agent_state(**agent_state_config)
-    state.user_request = "Mức độ tăng trưởng cổ phiếu VIC trong quý 4 2025"
+    state.user_request = "Mức độ tăng trưởng cổ phiếu VIC trong quý 1 2025"
 
     agent_config = get_agent_config(**agent_config)
 
@@ -38,16 +39,17 @@ async def test_researcher():
         "agent_type": "researcher",
         "streaming": False,
         "model_name": "gpt-4.1-mini",
-        "urls" : ["http://localhost:9003/sse"],
-        "current_time": current_time
+        "urls" : ["http://localhost:9003/sse"]
+        
     }
 
     researcher_state_config = {
-        "agent_type": "researcher"
+        "agent_type": "researcher",
+        "current_time": current_time
     }
 
     state = get_agent_state(**researcher_state_config)
-    state.research_task = "Conduct a comprehensive analysis to forecast Vingroup\'s revenue for the first quarter of 2026. The research should include: 1) Vingroup\'s historical quarterly financial performance data, especially focusing on recent trends and patterns; 2) Recent business developments and strategic initiatives by Vingroup that could impact revenue; 3) Market analyses and industry trends relevant to Vingroup\'s sectors of operation; 4) Macroeconomic conditions and economic indicators in Vietnam that could influence Vingroup\'s revenue growth prospects. The goal is to synthesize these elements to provide an accurate revenue forecast for Q1 2026."
+    state.research_task = "Conduct a comprehensive analysis to forecast Vingroup\'s revenue for the first quarter of 2025. The research should include: 1) Vingroup\'s historical quarterly financial performance data, especially focusing on recent trends and patterns; 2) Recent business developments and strategic initiatives by Vingroup that could impact revenue; 3) Market analyses and industry trends relevant to Vingroup\'s sectors of operation; 4) Macroeconomic conditions and economic indicators in Vietnam that could influence Vingroup\'s revenue growth prospects. The goal is to synthesize these elements to provide an accurate revenue forecast for Q1 2025."
 
     agent_config = get_agent_config(**researcher_agent_config)
 
@@ -63,12 +65,13 @@ async def test_deep_research():
         "agent_type": "deep_research",
         "streaming": True,
         "model_name": "gpt-4.1-mini",
-        "urls" : ["http://localhost:9003/sse"],
-        "current_time": current_time
+        "urls" : ["http://localhost:9003/sse"]
+        
     }
 
     deep_research_state_config = {
-        "agent_type": "deep_research"
+        "agent_type": "deep_research",
+        "current_time": current_time
     }
 
     researcher_agent_config = {
@@ -121,4 +124,4 @@ async def test_deep_research():
 
 if __name__ == "__main__":
 
-    asyncio.run(test_researcher())
+    asyncio.run(test_react())

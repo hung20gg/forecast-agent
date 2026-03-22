@@ -1,12 +1,8 @@
 import re
 import math
+import json
 
 # Extract <answer> ... </answer> from the response
-def extract_answer(response: str) -> str:
-    match = re.search(r"<answer>(.*?)</answer>", response, re.DOTALL)
-    if match:
-        return match.group(1).strip()
-    return ""
 
 
 # Extract <tool_call> ... </tool_call> from the response
@@ -38,21 +34,33 @@ def chi2_pdf(x, df=15):
 
 def nll_exclude_min(pred_mean, pred_std, true_mean, true_std = 0):
 
-    if true_std == 0:
-        true_std = true_mean * 0.1
+    if true_std <= 0:
+        true_std = abs(true_mean) * 0.05
 
-    return math.log(pred_std/true_std) + 0.5 * (true_std ** 2 + (pred_mean - true_mean) ** 2) / true_std ** 2 - 0.5
+    if pred_std <= 0:
+        pred_std = abs(pred_mean) * 0.01
+
+    # Prevent division by zero and domain errors
+    true_std = max(float(true_std), 1e-9)
+    pred_std = max(float(pred_std), 1e-9)
+
+    return (
+        math.log(true_std / pred_std) +
+        (pred_std**2 + (pred_mean - true_mean)**2) /
+        (2 * true_std**2) -
+        0.5
+    )
 
 
-def compute_score(solution_strs, ground_truths, alpha = 1):
-    print("SOLUTION_STRS:\n", solution_strs)
+def compute_score(solution_str, ground_truth, extra_info, alpha = 0.1):
+
+    asked_time: str = extra_info.get("time_asked", "unknown_time") # "2023-12-31 00:00:00",
+
+    tool_calls = extract_tool_call(solution_str)
     
-    print("GROUND_TRUTHS:\n", ground_truths)
-
-    tool_calls = extract_tool_call(solution_strs)
     tool_call_score = chi2_pdf(len(tool_calls))
     
-    answer = extract_answer(solution_strs)
+    answer = solution_str.split("</tool_call>")[-1].split("</think>")[-1] # crude way to get the answer part after the last tool call
     
     mean, std = extract_numerical_answer(answer)
     
@@ -64,13 +72,16 @@ def compute_score(solution_strs, ground_truths, alpha = 1):
             "error": "Failed to extract numerical answer"
         }
     
-    gt_mean = ground_truths['mean']
-    gt_std = ground_truths['std']
+    gt_mean = ground_truth['mean']
+    gt_std = ground_truth['std']
 
+    raw_nll = nll_exclude_min(mean, std, gt_mean, gt_std)
     
-    nll_score = max(alpha * nll_exclude_min(mean, std, gt_mean, gt_std) + 1, -1)
+    nll_score = max(- alpha * raw_nll + 1, -1)
 
-    total_score = tool_call_score - nll_score
+    total_score = tool_call_score + nll_score
+
+    print(f"### Extracted answer: mean={mean}, std={std}, ground_truth_mean={gt_mean}, ground_truth_std={gt_std}, nll_score={raw_nll}, tool_call_score={tool_call_score}, total_score={total_score}")
     
     return {
         "tool_call_score": tool_call_score,

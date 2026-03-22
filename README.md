@@ -67,9 +67,9 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile full up
 Embedding service is not compatible with Apple Silicon (M1/M2) due to the base image being x86_64. 
 You should run it independently via 
 
-```
+```bash
 model=google/embeddinggemma-300m
-export HF_TOKEN=<your CLI READ token>
+# export HF_TOKEN=<your CLI READ token>
 text-embeddings-router --model-id $model --port 8080
 ```
 

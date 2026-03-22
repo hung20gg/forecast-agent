@@ -115,9 +115,9 @@ def register_tool(mcp, client: Client):
         Get detailed information about a company based on its stock symbol.
 
         Args:
-            stock_symbol: The stock symbol of the company (e.g., "AAPL" for Apple Inc.)
+            stock_symbol: The stock symbol
         Returns:
-            A markdown-formatted string containing the company's details, or an error message if the query fails.
+            The company's details.
         """
 
         return await query_company_detail(client, stock_symbol)
@@ -131,7 +131,6 @@ def register_tool(mcp, client: Client):
         Args:
             stock_symbol: The stock symbol of the company to find similar companies for.
         Returns:
-            A markdown-formatted string containing a list of similar companies, or an error message if the query fails.
-        """
+            A markdown-formatted string containing a list of similar companies."""
 
         return await query_similar_companies(client, stock_symbol)

@@ -104,21 +104,35 @@ class Qdrant:
                 )
             query_filter = models.Filter(must=filter_conditions)
         
-        results = self.client.search(
-            collection_name=collection_name,
-            query_vector=vector,
-            query_filter=query_filter,
-            limit=limit,
-        )
+        # ---- compatibility layer ----
+        if hasattr(self.client, "query_points"):
+            results = self.client.query_points(
+                collection_name=collection_name,
+                query=vector,
+                query_filter=query_filter,
+                limit=limit,
+            )
+            points = results.points
+
+        elif hasattr(self.client, "search"):
+            points = self.client.search(
+                collection_name=collection_name,
+                query_vector=vector,
+                query_filter=query_filter,
+                limit=limit,
+            )
+
+        else:
+            raise RuntimeError("Unsupported Qdrant client version")
         
         # Convert results to JSON format
         formatted_results = []
-        for result in results:
+        for result in points:
             formatted_results.append({
                 "score": result.score,
                 "payload": result.payload
             })
-        
+
         return formatted_results
         
 

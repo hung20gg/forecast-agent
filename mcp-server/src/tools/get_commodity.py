@@ -94,10 +94,10 @@ def register_tool(mcp, client: Client):
     @mcp.tool()
     async def get_commodities_available() -> str:
         """
-        Fetch available commodities from BigQuery to provide filtering options for `get_commodities_value`.
+        Fetch available commodities to provide filtering options for `get_commodities_value`.
         
         Returns:
-            Available commodities as a string or error message
+            Available commodities
         """
         return await query_commodities_available(client)
 
@@ -111,9 +111,9 @@ def register_tool(mcp, client: Client):
             commodity_name: Commodity name to query
             start_date: Start date in 'YYYY-MM-DD' format
             end_date: End date in 'YYYY-MM-DD' format
-            duration: 'daily' or 'monthly' to specify the data frequency
+            duration: 'daily' or 'monthly'
         Returns:
-            Commodities value as a string or error message
+            Commodities values
         """
         if duration not in ['daily', 'monthly']:
             logger.error(f"Invalid duration specified for get_commodities_value: {duration}")

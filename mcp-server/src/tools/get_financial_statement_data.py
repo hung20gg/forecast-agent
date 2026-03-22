@@ -300,7 +300,7 @@ def register_tool(mcp, client: Client):
     
     async def get_exact_financial_ratio_code(query: str) -> str:
         """
-        Since financial ratio codes and names can be numerous and complex, this tool helps to find the exact financial ratio code based on a user query.
+        This tool helps to find the exact financial ratio code based on a user query.
         
         Args:
             query: User query to find the exact financial ratio code. Should be in English.
@@ -316,27 +316,27 @@ def register_tool(mcp, client: Client):
         ratio_code: str,
         start_date: str,
         end_date: str,
-        duration: str = 'quarterly'
+        # duration: str = 'quarterly'
     ):
         """
-        Fetch financial ratio data from BigQuery for the given stock symbol/industry, ratio code, and date range.
+        Fetch financial ratio data for the given stock symbol/industry, ratio code, and date range.
                
        Args:
             stock_code: Stock code/Industry to query. For industry, currently support support "Banking" industry with stock_code = "Banking".
             ratio_code: Financial ratio code to query
             start_date: Start date in 'YYYY-MM-DD' format
             end_date: End date in 'YYYY-MM-DD' format
-            duration: 'quarterly' or 'annually' to specify the data frequency
         Returns:
-            Financial ratio data as a string or error message
+            Financial ratio data
         """
+        duration = 'quarterly'  # For now, we only support quarterly data for financial ratio. We can add annually later if needed.
         return await _query_financial_ratio(client, stock_code, ratio_code, start_date, end_date, duration)
     
 
     @mcp.tool()
     async def get_exact_financial_statement_account(query: str) -> str:
         """
-        Since financial statement accounts can be numerous and complex, this tool helps to find the exact account based on a user query.
+        This tool helps to find the exact account based on a user query.
         
         Args:
             query: User query to find the exact financial statement account. Should be detailed in English (e.g., "Operating Revenue", "Cost of Goods Sold", "Loan from Financial ...", etc.)
@@ -352,10 +352,10 @@ def register_tool(mcp, client: Client):
         category_code: str,
         start_date: str,
         end_date: str,
-        duration: str = 'quarterly'
+        # duration: str = 'quarterly'
     ):
         """
-        Fetch financial statement data from BigQuery for the given stock symbol/industry, category code, and date range.
+        Fetch financial statement data for the given stock symbol/industry, category code, and date range.
         
         The industry includes: "Basic Resources", "Financial Services", "Utilities (Electricity, Water & Gas)", "Banking", "Food and Beverages", "Retail", "Travel and Leisure", "Chemicals", "Information Technology", "Oil and Gas", "Real Estate"
 
@@ -364,8 +364,8 @@ def register_tool(mcp, client: Client):
             category_code: Financial statement category code to query
             start_date: Start date in 'YYYY-MM-DD' format
             end_date: End date in 'YYYY-MM-DD' format
-            duration: 'quarterly' or 'annually' to specify the data frequency
         Returns:
-            Financial statement data as a string or error message
+            Financial statement data
         """
+        duration = 'quarterly'  # For now, we only support quarterly data for financial statement. We can add annually later if needed.
         return await _query_financial_statement(client, stock_code, category_code, start_date, end_date, duration)

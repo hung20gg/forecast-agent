@@ -250,21 +250,20 @@ def register_tool(mcp, client: Client):
     # Initialize Qdrant client
 
     @mcp.tool()
-    async def query_relevant_news(query: str, start_date: str, end_date: str, channel: Optional[str] = None, limit: int = 5) -> str:
+    async def query_relevant_news(query: str, start_date: str, end_date: str, limit: int = 5) -> str:
         """
         Fetch relevant news articles based on query, date range, and optional channel filter.
-        Uses vector similarity search if available, otherwise falls back to full-text search.
-        Results are truncated to 750 characters. Use read_full_article to get complete content of the article.
+        Results are truncated to 750 characters per article.
         
         Args:
             query: Search query string
             start_date: Start date in 'YYYY-MM-DD' format
             end_date: End date in 'YYYY-MM-DD' format
-            channel: Optional channel name filter
-            limit: Maximum number of articles to return. Recommend 5 for seach detail, 10 for seach overview
+            limit: Maximum number of articles to return.
         Returns:
-            JSON array of news articles (truncated to 750 chars) or error message
+            JSON array of truncated news articles
         """
+        channel = None
         # Try vector search first if available
         if client.qdrant_client.test_connection():
             result = await query_news_from_vectordb(client, query, start_date, end_date, limit)
@@ -279,11 +278,11 @@ def register_tool(mcp, client: Client):
     @mcp.tool()
     async def read_full_article(url: str) -> str:
         """
-        Fetch the complete, untruncated content of a news article by its URL.
+        Fetch the complete content of a news article by its URL.
         
         Args:
             url: The URL of the article to fetch
         Returns:
-            Full article content as JSON or error message
+            Full article content as JSON
         """
         return await get_new_from_url(client, url)

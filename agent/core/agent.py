@@ -11,7 +11,7 @@ from langgraph.config import get_stream_writer
 import json
 from typing import List, Dict, Any, AsyncIterable, Annotated, TypeVar, Generic
 from pydantic import BaseModel, Field
-from datetime import datetime
+from datetime import datetime, date
 from dotenv import load_dotenv
 import asyncio
 
@@ -24,15 +24,14 @@ WANDB_API_KEY = os.getenv("WANDB_API_KEY")
 WANDB_NAME = os.getenv("WANDB_NAME", "neu-solution/kltn")
 wandb.login(key=WANDB_API_KEY)
 weave.init(WANDB_NAME)
+
 class BaseAgentMCPConfig(BaseModel):
     agent_type: str = "base"
     model_name: str
     urls: Optional[List[str]] = None
     streaming: bool = False
     message_saver: Optional[str] = None
-    current_time : Annotated[str, "The current date and time in ISO 8601 format"] = Field(
-        default_factory=lambda: datetime.now().isoformat()
-    )
+
     
 StateT = TypeVar("StateT", bound=AgentState)
 ConfigT = TypeVar("ConfigT", bound=BaseAgentMCPConfig)
@@ -78,7 +77,7 @@ class BaseAgentMCP(Generic[StateT, ConfigT]):
             return 'end'
         return 'continue'
     
-    async def _single_tool_execute(self, tool_call: Dict[str, Any]) -> Dict[str, Any]:
+    async def _single_tool_execute(self, tool_call: Dict[str, Any], current_time: str) -> Dict[str, Any]:
         
         tool_id = None
         tool_response = None
@@ -90,17 +89,47 @@ class BaseAgentMCP(Generic[StateT, ConfigT]):
             logger.info(f"[FUNCTION]: {function_name} {function.get('arguments')}")
             arguments = json.loads(function.get("arguments"))
 
+            time_asked = current_time
+            time_asked_date = datetime.strptime(time_asked, "%Y-%m-%d") if time_asked else None
+            
+            tool_response = None
+            allow_tool_execution = True
+            for key in list(arguments.keys()):
+
+                # Reject queries that ask for data beyond the time we have access to.
+                if key == "start_date" and isinstance(arguments[key], str):
+                    try:
+                        temp_date = datetime.strptime(arguments[key], "%Y-%m-%d")
+                        if temp_date > time_asked_date:
+                            allow_tool_execution = False
+                            tool_response = f"[ERROR] Data only available up to {time_asked_date.strftime('%Y-%m-%d')}, but the query asked for {arguments[key]}. Only fetch up to {time_asked_date.strftime('%Y-%m-%d')}.\n\n"
+                           
+                    except ValueError:
+                        logger.warning(f"Failed to parse date from parameter {key} with value {arguments[key]}")
+
+                # Clamp end_date to not exceed time_asked_date.
+                if key == "end_date" and isinstance(arguments[key], str):
+                    try:
+                        temp_date = datetime.strptime(arguments[key], "%Y-%m-%d")
+                        if temp_date > time_asked_date:
+                            arguments[key] = time_asked_date.strftime("%Y-%m-%d")
+                    except ValueError:
+                        logger.warning(f"Failed to parse date from parameter {key} with value {arguments[key]}")
+
             tool_result = await self.mcp_client.call_tool(function_name, arguments)
             
             #post-process tool result
-            response = tool_result.content[0].text
-            if response.startswith('{') or response.startswith('['):
-                try:
-                    response = json.loads(response)
-                except json.JSONDecodeError:
-                    pass  # Keep original text if JSON parsing fails
+            if allow_tool_execution:
+                response = tool_result.content[0].text
+                if response.startswith('{') or response.startswith('['):
+                    try:
+                        response = json.loads(response)
+                    except json.JSONDecodeError:
+                        pass  # Keep original text if JSON parsing fails
 
-            tool_response = json.dumps(response, ensure_ascii=False)
+                tool_response = json.dumps(response, ensure_ascii=False)
+            else:
+                tool_response = tool_response or "[ERROR] Tool execution was blocked due to invalid parameters.\n\n"
         
         except Exception as e:          
             logger.error(f"Error executing tool: {e}")
@@ -112,10 +141,10 @@ class BaseAgentMCP(Generic[StateT, ConfigT]):
             "content": tool_response
         }
     
-    async def _tool_execute(self, tool_calls: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    async def _tool_execute(self, tool_calls: List[Dict[str, Any]], current_time: str) -> List[Dict[str, Any]]:
         tool_responses = []
         tool_responses = await asyncio.gather(*[
-            self._single_tool_execute(tool_call) for tool_call in tool_calls
+            self._single_tool_execute(tool_call, current_time) for tool_call in tool_calls
         ])
 
         return tool_responses
@@ -124,7 +153,8 @@ class BaseAgentMCP(Generic[StateT, ConfigT]):
     @weave.op(call_display_name="Tool Execute")
     async def tool_execute(self, state: StateT) -> StateT:
 
-        tool_messages = await self._tool_execute(state.messages[-1].get("tool_calls", []))
+        current_time = state.current_time
+        tool_messages = await self._tool_execute(state.messages[-1].get("tool_calls", []), current_time)
         state.messages.extend(tool_messages)
         state.num_tools_calls += len(tool_messages)
         return state
